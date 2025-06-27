@@ -264,23 +264,74 @@ docker restart uitleenschrift-app
 
 ### Database Problemen (SQLite Permission Error)
 
-**Symptoom**: `sqlite3.OperationalError: unable to open database file`
+**Symptoom**: `sqlite3.OperationalError: unable to open database file` + `curl: (56) Recv failure: Connection reset by peer`
 
-**Oplossing**:
+**Oorzaak**: Container crash door database permissions, oude image zonder fix.
+
+**Stap-voor-stap Oplossing**:
+
+**1. Check GitHub Actions Status:**
 ```bash
-# Stop container
-docker stop uitleenschrift-app
+# Check of nieuwe image klaar is op: https://github.com/Hoite/Uitleenschrift/actions
+```
 
-# Zorg dat instance directory bestaat en juiste permissions heeft
-mkdir -p ./instance
-chmod 755 ./instance
+**2. Stop alles en clean up:**
+```bash
+docker stop uitleenschrift-app uitleenschrift-watchtower 2>/dev/null || true
+docker rm uitleenschrift-app uitleenschrift-watchtower 2>/dev/null || true
+```
 
-# Herstart container
-docker start uitleenschrift-app
+**3. Fix permissions VOOR container start:**
+```bash
+# Maak instance directory met correcte ownership
+sudo mkdir -p ./instance
+sudo chown -R 1000:1000 ./instance  # Docker user ID
+sudo chmod 755 ./instance
+```
 
-# Of als het probleem persisteert, verwijder en hermaak:
-docker rm uitleenschrift-app
+**4. Download nieuwste image (als GitHub Actions klaar is):**
+```bash
+docker pull hoite/uitleenschrift:latest
+```
+
+**5. Test de image lokaal EERST:**
+```bash
+# Test run zonder daemon mode
+docker run --rm -p 5000:5000 \
+  -v $(pwd)/instance:/app/instance \
+  -e SECRET_KEY="test-key-123" \
+  hoite/uitleenschrift:latest
+
+# Als dit NIET crasht, druk Ctrl+C en ga verder
+# Als dit WEL crasht, image is nog niet gefixt
+```
+
+**6. Als test succesvol was, deploy via script:**
+```bash
 ./deploy.sh
+```
+
+**7. Verify:**
+```bash
+docker ps  # Moet RUNNING zijn, niet Restarting
+
+# Test binnen container
+docker exec uitleenschrift-app curl http://127.0.0.1:5000/health
+
+# Test van host
+curl http://localhost:5000/health  # Moet {"status": "healthy"} geven
+
+# Als curl faalt maar container healthy is:
+# Flask luistert alleen op 127.0.0.1 ipv 0.0.0.0
+```
+
+**Als curl nog steeds faalt ondanks healthy container:**
+```bash
+# Check Flask binding
+docker exec uitleenschrift-app netstat -tlnp | grep 5000
+
+# Expected: 0.0.0.0:5000, Probleem: 127.0.0.1:5000
+# Fix: Update Flask app.run() to bind 0.0.0.0
 ```
 
 ### Cloudflare Tunnel Problemen

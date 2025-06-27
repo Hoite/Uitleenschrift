@@ -382,4 +382,5 @@ if __name__ == '__main__':
             except Exception as e:
                 print(f"Kon cover_url kolom niet toevoegen: {e}")
                 
-    app.run(debug=True)
+    # Configure Flask to listen on all interfaces for Docker
+    app.run(debug=False, host='0.0.0.0', port=5000)
