@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Uitleenschrift{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="bi bi-house"></i> Dashboard
+        <small class="text-muted">Welkom, {{ current_user.username }}!</small>
+    </h2>
+    <div class="btn-group" role="group">
+        <a href="{{ url_for('nieuwe_uitlening') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nieuwe Uitlening
+        </a>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-printer"></i> Print
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{{ url_for('print_compact') }}" target="_blank">
+                    <i class="bi bi-file-text"></i> Compacte Lijst
+                </a></li>
+                <li><a class="dropdown-item" href="{{ url_for('print_uitleningen') }}" target="_blank">
+                    <i class="bi bi-file-earmark-text"></i> Volledig Overzicht
+                </a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('print_compact') }}?auto_print=true" target="_blank">
+                    <i class="bi bi-printer-fill"></i> Direct Printen (Compact)
+                </a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Statistieken -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card stats-card bg-primary text-white">
+            <div class="card-body text-center">
+                <div class="logo-container mb-2">
+                    <div class="position-relative d-inline-block">
+                        <i class="bi bi-journal-bookmark-fill" style="font-size: 2.5rem;"></i>
+                        <i class="bi bi-arrow-right-circle-fill position-absolute" style="font-size: 1rem; top: 0; right: -8px; color: #ffc107;"></i>
+                    </div>
+                </div>
+                <h3 class="mt-2">{{ stats.totaal }}</h3>
+                <p class="mb-0">📚 Totaal Uitgeleend</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stats-card bg-warning text-white">
+            <div class="card-body text-center">
+                <div class="logo-container mb-2">
+                    <i class="bi bi-hourglass-split" style="font-size: 2.5rem;"></i>
+                </div>
+                <h3 class="mt-2">{{ stats.uitstaand }}</h3>
+                <p class="mb-0">⏰ Nog Uitgeleend</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stats-card bg-success text-white">
+            <div class="card-body text-center">
+                <div class="logo-container mb-2">
+                    <i class="bi bi-check-circle-fill" style="font-size: 2.5rem;"></i>
+                </div>
+                <h3 class="mt-2">{{ stats.teruggegeven }}</h3>
+                <p class="mb-0">✅ Teruggegeven</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Uitgeleende Boeken -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-hourglass-split text-warning"></i> 
+            Nog Uitgeleende Boeken ({{ uitgeleende_boeken|length }})
+        </h5>
+        {% if uitgeleende_boeken %}
+        <a href="{{ url_for('print_uitleningen') }}" class="btn btn-sm btn-outline-primary" target="_blank">
+            <i class="bi bi-printer"></i> Print Lijst
+        </a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if uitgeleende_boeken %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Cover</th>
+                            <th>Boek</th>
+                            <th>Auteur</th>
+                            <th>Uitgeleend aan</th>
+                            <th>Sinds</th>
+                            <th>Verwacht terug</th>
+                            <th>Acties</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for uitlening in uitgeleende_boeken %}
+                        <tr>
+                            <td>
+                                {% if uitlening.cover_url %}
+                                    <img src="{{ uitlening.cover_url }}" 
+                                         alt="Cover van {{ uitlening.boek_titel }}" 
+                                         class="book-cover" 
+                                         style="width: 50px; height: 70px; object-fit: cover; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                                    <div style="display: none; width: 50px; height: 70px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 4px; align-items: center; justify-content: center; color: white; font-size: 12px; text-align: center;">
+                                        📚<br>Geen<br>Cover
+                                    </div>
+                                {% else %}
+                                    <div style="width: 50px; height: 70px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                        📚<br>Geen<br>Cover
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ uitlening.boek_titel }}</strong>
+                                {% if uitlening.notities %}
+                                    <br><small class="text-muted">{{ uitlening.notities[:50] }}{% if uitlening.notities|length > 50 %}...{% endif %}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ uitlening.auteur }}</td>
+                            <td>
+                                <i class="bi bi-person"></i> {{ uitlening.uitgeleend_aan }}
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ uitlening.uitgeleend_vanaf.strftime('%d-%m-%Y') }}</small>
+                                {% set days_out = (today - uitlening.uitgeleend_vanaf).days %}
+                                <br><small class="badge bg-light text-dark">{{ days_out }} dagen</small>
+                            </td>
+                            <td>
+                                {% if uitlening.verwachte_teruggave %}
+                                    {{ uitlening.verwachte_teruggave.strftime('%d-%m-%Y') }}
+                                    {% if uitlening.verwachte_teruggave < today %}
+                                        <br><small class="badge bg-danger">Te laat!</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">Niet opgegeven</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('markeer_teruggegeven', id=uitlening.id) }}" 
+                                       class="btn btn-success btn-sm" 
+                                       onclick="return confirm('Markeer dit boek als teruggegeven?')" 
+                                       title="Markeer als teruggegeven">
+                                        <i class="bi bi-check"></i>
+                                    </a>
+                                    <a href="{{ url_for('bewerken_uitlening', id=uitlening.id) }}" 
+                                       class="btn btn-warning btn-sm" 
+                                       title="Bewerken">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{{ url_for('ververs_cover', id=uitlening.id) }}" 
+                                       class="btn btn-info btn-sm" 
+                                       title="Cover verversen">
+                                        <i class="bi bi-image"></i>
+                                    </a>
+                                    <a href="{{ url_for('verwijderen_uitlening', id=uitlening.id) }}" 
+                                       class="btn btn-danger btn-sm" 
+                                       onclick="return confirm('Weet je zeker dat je deze uitlening wilt verwijderen?')" 
+                                       title="Verwijderen">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-emoji-smile text-muted" style="font-size: 3rem;"></i>
+                <h5 class="text-muted mt-2">Geen uitgeleende boeken!</h5>
+                <p class="text-muted">Alle boeken zijn terug of je hebt nog geen uitleningen toegevoegd.</p>
+                <a href="{{ url_for('nieuwe_uitlening') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Eerste uitlening toevoegen
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Teruggegeven Boeken -->
+{% if teruggegeven_boeken %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-check-circle text-success"></i> 
+            Recent Teruggegeven Boeken ({{ teruggegeven_boeken|length }})
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Cover</th>
+                        <th>Boek</th>
+                        <th>Auteur</th>
+                        <th>Was uitgeleend aan</th>
+                        <th>Periode</th>
+                        <th>Acties</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for uitlening in teruggegeven_boeken[-10:] %}
+                    <tr class="table-light">
+                        <td>
+                            {% if uitlening.cover_url %}
+                                <img src="{{ uitlening.cover_url }}" 
+                                     alt="Cover van {{ uitlening.boek_titel }}" 
+                                     style="width: 30px; height: 40px; object-fit: cover; border-radius: 2px;"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                                <div style="display: none; width: 30px; height: 40px; background: #ddd; border-radius: 2px; align-items: center; justify-content: center; font-size: 10px;">📚</div>
+                            {% else %}
+                                <div style="width: 30px; height: 40px; background: #ddd; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 10px;">📚</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ uitlening.boek_titel }}</td>
+                        <td>{{ uitlening.auteur }}</td>
+                        <td>{{ uitlening.uitgeleend_aan }}</td>
+                        <td>
+                            <small>{{ uitlening.uitgeleend_vanaf.strftime('%d-%m-%Y') }}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('bewerken_uitlening', id=uitlening.id) }}" 
+                                   class="btn btn-outline-warning btn-sm">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{{ url_for('verwijderen_uitlening', id=uitlening.id) }}" 
+                                   class="btn btn-outline-danger btn-sm" 
+                                   onclick="return confirm('Weet je zeker dat je deze uitlening wilt verwijderen?')">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

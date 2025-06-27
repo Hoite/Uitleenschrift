@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uitleenschrift - Overzicht voor {{ gebruiker }}</title>
+    <style>
+        /* Print-specifieke CSS */
+        @media print {
+            body { 
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                line-height: 1.4;
+                color: #000;
+                margin: 0;
+                padding: 20px;
+            }
+            .no-print { display: none !important; }
+            .page-break { page-break-before: always; }
+            table { 
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+            }
+            th, td { 
+                border: 1px solid #000;
+                padding: 8px;
+                text-align: left;
+                font-size: 11px;
+            }
+            th { 
+                background-color: #f0f0f0;
+                font-weight: bold;
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 10px;
+            }
+            .stats-section {
+                margin-bottom: 25px;
+                padding: 10px;
+                border: 1px solid #000;
+            }
+            .book-cover {
+                max-width: 30px;
+                max-height: 40px;
+            }
+            .footer {
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                right: 20px;
+                font-size: 10px;
+                text-align: center;
+                border-top: 1px solid #000;
+                padding-top: 10px;
+            }
+        }
+        
+        /* Screen CSS */
+        @media screen {
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f5f5f5;
+            }
+            .print-container {
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+            .print-buttons {
+                position: sticky;
+                top: 20px;
+                background: white;
+                padding: 15px;
+                text-align: center;
+                border-radius: 8px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                margin-bottom: 20px;
+                z-index: 100;
+            }
+            .btn {
+                display: inline-block;
+                padding: 10px 20px;
+                margin: 0 10px;
+                background-color: #007bff;
+                color: white;
+                text-decoration: none;
+                border-radius: 5px;
+                border: none;
+                cursor: pointer;
+                font-size: 14px;
+            }
+            .btn:hover {
+                background-color: #0056b3;
+            }
+            .btn-secondary {
+                background-color: #6c757d;
+            }
+            .btn-secondary:hover {
+                background-color: #545b62;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 25px;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 12px;
+                text-align: left;
+            }
+            th {
+                background-color: #f8f9fa;
+                font-weight: bold;
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+                border-bottom: 2px solid #007bff;
+                padding-bottom: 15px;
+            }
+            .stats-section {
+                background-color: #f8f9fa;
+                padding: 15px;
+                border-radius: 5px;
+                margin-bottom: 25px;
+            }
+            .book-cover {
+                max-width: 40px;
+                max-height: 50px;
+                border-radius: 3px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-buttons no-print">
+        <button onclick="window.print()" class="btn">🖨️ Printen</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">🔙 Terug naar Dashboard</a>
+    </div>
+
+    <div class="print-container">
+        <div class="header">
+            <h1>📚 Uitleenschrift Overzicht</h1>
+            <h2>{{ gebruiker }}</h2>
+            <p><strong>Gegenereerd op:</strong> {{ today.strftime('%d-%m-%Y') }}</p>
+        </div>
+
+        <!-- Statistieken -->
+        <div class="stats-section">
+            <h3>📊 Statistieken</h3>
+            <table style="margin-bottom: 0;">
+                <tr>
+                    <td><strong>Totaal uitgeleend:</strong></td>
+                    <td>{{ stats.totaal }} boeken</td>
+                    <td><strong>Nog uitgeleend:</strong></td>
+                    <td>{{ stats.uitstaand }} boeken</td>
+                    <td><strong>Teruggegeven:</strong></td>
+                    <td>{{ stats.teruggegeven }} boeken</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Uitgeleende Boeken -->
+        {% if uitgeleende_boeken %}
+        <div class="section">
+            <h3>📖 Nog Uitgeleende Boeken ({{ uitgeleende_boeken|length }})</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cover</th>
+                        <th>Boek & Auteur</th>
+                        <th>Uitgeleend aan</th>
+                        <th>Sinds</th>
+                        <th>Verwacht terug</th>
+                        <th>Dagen uit</th>
+                        <th>Notities</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for uitlening in uitgeleende_boeken %}
+                    <tr>
+                        <td style="text-align: center;">
+                            {% if uitlening.cover_url %}
+                                <img src="{{ uitlening.cover_url }}" alt="Cover" class="book-cover">
+                            {% else %}
+                                📚
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ uitlening.boek_titel }}</strong><br>
+                            <em>{{ uitlening.auteur }}</em>
+                        </td>
+                        <td>{{ uitlening.uitgeleend_aan }}</td>
+                        <td>{{ uitlening.uitgeleend_vanaf.strftime('%d-%m-%Y') }}</td>
+                        <td>
+                            {% if uitlening.verwachte_teruggave %}
+                                {{ uitlening.verwachte_teruggave.strftime('%d-%m-%Y') }}
+                                {% if uitlening.verwachte_teruggave < today %}
+                                    <br><strong>⚠️ TE LAAT!</strong>
+                                {% endif %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {{ (today - uitlening.uitgeleend_vanaf).days }}
+                        </td>
+                        <td>{{ uitlening.notities or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="section">
+            <h3>📖 Nog Uitgeleende Boeken</h3>
+            <p><em>Geen boeken momenteel uitgeleend! 🎉</em></p>
+        </div>
+        {% endif %}
+
+        <!-- Recent Teruggegeven Boeken -->
+        {% if teruggegeven_boeken %}
+        <div class="section page-break">
+            <h3>✅ Recent Teruggegeven Boeken (laatste 20)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cover</th>
+                        <th>Boek & Auteur</th>
+                        <th>Was uitgeleend aan</th>
+                        <th>Uitgeleend periode</th>
+                        <th>Notities</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for uitlening in teruggegeven_boeken %}
+                    <tr>
+                        <td style="text-align: center;">
+                            {% if uitlening.cover_url %}
+                                <img src="{{ uitlening.cover_url }}" alt="Cover" class="book-cover">
+                            {% else %}
+                                📚
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ uitlening.boek_titel }}</strong><br>
+                            <em>{{ uitlening.auteur }}</em>
+                        </td>
+                        <td>{{ uitlening.uitgeleend_aan }}</td>
+                        <td>{{ uitlening.uitgeleend_vanaf.strftime('%d-%m-%Y') }}</td>
+                        <td>{{ uitlening.notities or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Tips sectie -->
+        <div class="section">
+            <h3>💡 Tips</h3>
+            <ul>
+                <li>Controleer regelmatig welke boeken te laat zijn (⚠️ gemarkeerd)</li>
+                <li>Noteer contactgegevens van leners in het notitieveld</li>
+                <li>Stel altijd een verwachte teruggave datum in voor betere tracking</li>
+                <li>Gebruik de app om snel herinneringen te sturen aan leners</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Gegenereerd door Uitleenschrift • {{ today.strftime('%d-%m-%Y') }} • Gebruiker: {{ gebruiker }}</p>
+    </div>
+
+    <script>
+        // Auto-print functionaliteit (optioneel)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('auto_print') === 'true') {
+            window.onload = function() {
+                setTimeout(function() {
+                    window.print();
+                }, 1000);
+            };
+        }
+    </script>
+</body>
+</html>

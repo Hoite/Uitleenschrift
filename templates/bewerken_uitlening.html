@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Uitlening Bewerken - Uitleenschrift{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="bi bi-pencil"></i> Uitlening Bewerken
+                </h4>
+                <small class="text-muted">{{ uitlening.boek_titel }} door {{ uitlening.auteur }}</small>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.boek_titel.label(class="form-label") }}
+                            {{ form.boek_titel(class="form-control") }}
+                            {% if form.boek_titel.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.boek_titel.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.auteur.label(class="form-label") }}
+                            {{ form.auteur(class="form-control") }}
+                            {% if form.auteur.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.auteur.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.uitgeleend_aan.label(class="form-label") }}
+                        {{ form.uitgeleend_aan(class="form-control") }}
+                        {% if form.uitgeleend_aan.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.uitgeleend_aan.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.uitgeleend_vanaf.label(class="form-label") }}
+                            {{ form.uitgeleend_vanaf(class="form-control", placeholder="dd/mm/yyyy", type="text") }}
+                            {% if form.uitgeleend_vanaf.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.uitgeleend_vanaf.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.verwachte_teruggave.label(class="form-label") }}
+                            {{ form.verwachte_teruggave(class="form-control", placeholder="dd/mm/yyyy", type="text") }}
+                            <small class="form-text text-muted">Optioneel - laat leeg om te verwijderen</small>
+                            {% if form.verwachte_teruggave.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.verwachte_teruggave.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.notities.label(class="form-label") }}
+                        {{ form.notities(class="form-control", rows="3") }}
+                        {% if form.notities.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.notities.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.teruggegeven.label(class="form-label") }}
+                        {{ form.teruggegeven(class="form-control") }}
+                        <small class="form-text text-muted">Type 'ja' als het boek teruggegeven is, 'nee' als het nog uitgeleend is</small>
+                        {% if form.teruggegeven.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.teruggegeven.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Terug naar Dashboard
+                        </a>
+                        <div>
+                            {% if not uitlening.teruggegeven %}
+                                <a href="{{ url_for('markeer_teruggegeven', id=uitlening.id) }}" 
+                                   class="btn btn-success me-2"
+                                   onclick="return confirm('Markeer dit boek als teruggegeven?')">
+                                    <i class="bi bi-check"></i> Markeer als Teruggegeven
+                                </a>
+                            {% endif %}
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card border-warning">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-exclamation-triangle text-warning"></i> Uitlening Details
+                </h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Huidige status:</strong> 
+                            {% if uitlening.teruggegeven %}
+                                <span class="badge bg-success">Teruggegeven</span>
+                            {% else %}
+                                <span class="badge bg-warning">Uitgeleend</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Uitgeleend sinds:</strong> {{ uitlening.uitgeleend_vanaf.strftime('%d-%m-%Y') }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        {% if uitlening.verwachte_teruggave %}
+                            <p><strong>Verwacht terug:</strong> {{ uitlening.verwachte_teruggave.strftime('%d-%m-%Y') }}</p>
+                        {% endif %}
+                        <p><strong>Uitgeleend aan:</strong> {{ uitlening.uitgeleend_aan }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
