@@ -1,12 +1,36 @@
-# Server Setup Guide
+# Server Deployment Guide
 
-Deze guide helpt je om Uitleenschrift op je server te deployen met Docker en Cloudflare tunnel.
+Deze guide helpt je om Uitleenschrift op je eigen server te deployen met Docker### 4. Eerste Deployment
+
+**⚠️ Belangrijk:** Pas eerst de `docker-compose.prod.yml` aan:
+- Vervang `hoite/uitleenschrift:latest` met je eigen Docker Hub image
+
+```bash
+# Bewerk docker-compose.prod.yml
+nano docker-compose.prod.yml
+
+# Run deployment script
+./deploy.sh
+
+# Of handmatig met docker-compose
+docker-compose -f docker-compose.prod.yml up -d
+```neel Cloudflare tunnel.
+
+## ⚠️ Belangrijk: Placeholders Vervangen
+
+**Voordat je begint, vervang deze placeholders in alle commando's:**
+- `jouw-domein.com` → Jouw eigen domein (bijv. `app.mijndomein.nl`)
+- `TUNNEL_ID` → Je Cloudflare tunnel ID
+- Docker Hub images: Als je een eigen fork maakt, vervang `hoite/uitleenschrift` met je eigen Docker Hub image
+
+**Optioneel (voor eigen development):**
+- Fork de GitHub repository en pas GitHub Actions aan voor je eigen Docker Hub account
 
 ## 📋 Vereisten
 
 - Server met Docker en Docker Compose geïnstalleerd
-- Cloudflare account met tunnel toegang
-- Domein (uitleenschrift.hoite.nl) gekoppeld aan Cloudflare
+- Cloudflare account met tunnel toegang (optioneel)
+- Een domein gekoppeld aan Cloudflare (optioneel, voor publieke toegang)
 
 ## 🚀 Server Setup
 
@@ -31,7 +55,7 @@ sudo chmod +x /usr/local/bin/docker-compose
 ### 2. Project Setup op Server
 
 ```bash
-# Maak project directory
+# Maak project directory (pas pad aan naar jouw voorkeur)
 mkdir -p /opt/uitleenschrift
 cd /opt/uitleenschrift
 
@@ -141,8 +165,8 @@ cloudflared tunnel create uitleenschrift
 ### 4. DNS Configuratie
 
 ```bash
-# Voeg DNS record toe (vervang TUNNEL_ID)
-cloudflared tunnel route dns uitleenschrift uitleenschrift.hoite.nl
+# Voeg DNS record toe (vervang TUNNEL_ID en jouw-domein.com)
+cloudflared tunnel route dns uitleenschrift jouw-domein.com
 ```
 
 ### 5. Tunnel Configuratie
@@ -156,7 +180,7 @@ tunnel: TUNNEL_ID  # Vervang met jouw tunnel ID
 credentials-file: /etc/cloudflared/TUNNEL_ID.json
 
 ingress:
-  - hostname: uitleenschrift.hoite.nl
+  - hostname: jouw-domein.com  # Vervang met jouw domein
     service: http://host.docker.internal:5000  # Voor Docker Desktop
     # OF voor Linux servers:
     # service: http://172.17.0.1:5000
@@ -172,7 +196,7 @@ tunnel: TUNNEL_ID  # Vervang met jouw tunnel ID
 credentials-file: /home/$USER/.cloudflared/TUNNEL_ID.json
 
 ingress:
-  - hostname: uitleenschrift.hoite.nl
+  - hostname: jouw-domein.com  # Vervang met jouw domein
     service: http://localhost:5000
   - service: http_status:404
 ```
@@ -270,8 +294,8 @@ sudo journalctl -u cloudflared -f
 # Lokale health check
 curl http://localhost:5000/health
 
-# Externe health check
-curl https://uitleenschrift.hoite.nl/health
+# Externe health check (vervang met jouw domein)
+curl https://jouw-domein.com/health
 ```
 
 ### Backup Database
