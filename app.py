@@ -10,6 +10,10 @@ from datetime import datetime, date
 import os
 import requests
 import urllib.parse
+from dotenv import load_dotenv
+
+# Laad environment variabelen uit .env bestand (voor lokale development)
+load_dotenv()
 
 # Custom DateField voor DD/MM/YYYY formaat
 class DutchDateField(DateField):
@@ -42,9 +46,17 @@ class DutchDateField(DateField):
             return ''
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'jouw-geheime-sleutel-hier'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///uitleenschrift.db'
+
+# Configuratie via environment variabelen met veilige fallbacks
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///instance/uitleenschrift.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Google Books API Key uit environment variabelen
+GOOGLE_BOOKS_API_KEY = os.environ.get('GOOGLE_BOOKS_API_KEY', '')
+
+# Flask configuratie
+app.config['WTF_CSRF_ENABLED'] = True
 
 db = SQLAlchemy(app)
 
@@ -86,13 +98,20 @@ def get_book_cover(titel, auteur):
     """
     Haal een boekomslag op via de Google Books API
     """
+    if not GOOGLE_BOOKS_API_KEY:
+        print("Geen Google Books API key geconfigureerd")
+        return None
+        
     try:
         # Maak een zoekquery
         query = f"{titel} {auteur}".strip()
+        if not query:
+            return None
+            
         encoded_query = urllib.parse.quote(query)
         
-        # Google Books API endpoint
-        url = f"https://www.googleapis.com/books/v1/volumes?q={encoded_query}&maxResults=1"
+        # Google Books API endpoint met API key
+        url = f"https://www.googleapis.com/books/v1/volumes?q={encoded_query}&maxResults=1&key={GOOGLE_BOOKS_API_KEY}"
         
         # API call
         response = requests.get(url, timeout=5)

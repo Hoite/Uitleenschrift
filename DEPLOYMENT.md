@@ -45,6 +45,40 @@ wget https://raw.githubusercontent.com/Hoite/Uitleenschrift/main/.env.example -O
 nano .env  # Vul je geheime sleutels in
 ```
 
+### 🔐 Environment Variabelen Configureren
+
+**Bewerk het `.env` bestand met jouw configuratie:**
+
+```bash
+nano .env
+```
+
+**Vul minimaal deze waarden in:**
+
+```bash
+# VERPLICHT: Genereer een sterke SECRET_KEY voor productie
+SECRET_KEY=je-sterke-geheime-sleutel-hier
+
+# OPTIONEEL: Google Books API key voor automatische covers
+GOOGLE_BOOKS_API_KEY=je-google-books-api-key
+
+# OPTIONEEL: Cloudflare tunnel token (zie Cloudflare sectie)
+CLOUDFLARE_TUNNEL_TOKEN=je-cloudflare-tunnel-token
+```
+
+**Genereer een sterke SECRET_KEY:**
+```bash
+# Genereer een cryptografisch sterke sleutel
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+**Google Books API Key verkrijgen (optioneel):**
+1. Ga naar [Google Cloud Console](https://console.developers.google.com/)
+2. Maak een nieuw project of selecteer bestaand project
+3. Activeer de "Books API"
+4. Maak een API key aan
+5. Voeg de key toe aan je `.env` bestand
+
 ### 3. Eerste Deployment
 
 ```bash
