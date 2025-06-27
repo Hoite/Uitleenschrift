@@ -31,15 +31,8 @@ COPY --chown=appuser:appuser . .
 
 # Maak een script om permissies te fixen bij startup
 USER root
-RUN echo '#!/bin/bash\n\
-# Fix permissions voor instance directory als die gemount is\n\
-if [ -d "/app/instance" ]; then\n\
-    chown -R appuser:appuser /app/instance\n\
-    chmod 755 /app/instance\n\
-fi\n\
-# Switch naar appuser en start de applicatie\n\
-exec su appuser -c "python app.py"' > /app/entrypoint.sh && \
-    chmod +x /app/entrypoint.sh
+COPY --chown=root:root entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Switch terug naar appuser voor de rest
 USER appuser
@@ -59,6 +52,9 @@ ENV PATH="/home/appuser/.local/bin:${PATH}"
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:5000/health || exit 1
+
+# Wissel naar root voor entrypoint (zodat runuser kan werken)
+USER root
 
 # Start commando
 CMD ["/app/entrypoint.sh"]
