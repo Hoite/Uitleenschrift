@@ -1,36 +1,63 @@
-# Uitleenschrift
+# 📚 Uitleenschrift
 
-Een eenvoudige Flask web applicatie om bij te houden welke boeken je hebt uitgeleend en aan wie.
+Een elegante Flask web applicatie om bij te houden welke boeken je hebt uitgeleend en aan wie.
 
-## Functionaliteiten
+![Python](https://img.shields.io/badge/python-v3.8+-blue.svg)
+![Flask](https://img.shields.io/badge/flask-2.0+-green.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-- **Gebruikersbeheer**: Registreren, inloggen en uitloggen
-- **Uitleningen bijhouden**: Voeg nieuwe uitleningen toe met alle relevante details
-- **Automatische boekomslagen**: Cover wordt automatisch opgehaald via Google Books API
-- **Print functionaliteit**: Print overzichten van uitgeleende boeken (compact & volledig)
-- **Overzicht**: Zie in één oogopslag welke boeken nog uitstaan en welke terug zijn
-- **Bewerken**: Wijzig uitleengegevens en markeer boeken als teruggegeven
-- **Cover verversen**: Handmatig nieuwe covers ophalen voor bestaande boeken
-- **Statistieken**: Dashboard met overzicht van al je uitleningen
+## ✨ Functionaliteiten
 
-## Installatie en gebruik
+- **👤 Gebruikersbeheer**: Veilige registratie, login en sessie management
+- **📖 Uitleningen bijhouden**: Beheer al je uitgeleende boeken met alle relevante details
+- **🖼️ Automatische boekomslagen**: Covers worden automatisch opgehaald via Google Books API
+- **🖨️ Print functionaliteit**: Print overzichten van uitgeleende boeken (compact & volledig)
+- **📊 Dashboard**: Overzicht van alle uitgeleende boeken met covers
+- **📝 Bewerken**: Wijzig uitleengegevens en markeer boeken als teruggegeven
+- **🔄 Cover verversen**: Handmatig nieuwe covers ophalen voor bestaande boeken
+- **📈 Statistieken**: Totaal uitgeleend, nog uitgeleend, teruggegeven
+- **🇳🇱 Nederlandse datum notatie**: DD/MM/YYYY formaat
+- **📱 Responsive design**: Bootstrap styling voor alle apparaten
 
-### Vereisten
+## 🚀 Installatie en gebruik
+
+### 📋 Vereisten
 - Python 3.8 of hoger
 - pip (Python package manager)
 
-### Stappen
+### ⚡ Quick Start
 
-1. **Clone of download de applicatie**
+1. **Clone de repository**
    ```bash
-   cd /Users/hoite/Dev/Uitleenschrift
+   git clone https://github.com/Hoite/Uitleenschrift.git
+   cd Uitleenschrift
    ```
 
-2. **Virtuele omgeving activeren** (al gedaan)
-   De Python omgeving is al geconfigureerd.
+2. **Maak een virtuele omgeving**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate  # Linux/Mac
+   # of
+   .venv\Scripts\activate     # Windows
+   ```
 
-3. **Packages installeren** (al gedaan)
-   Alle benodigde packages zijn al geïnstalleerd.
+3. **Installeer dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configureer de applicatie**
+   ```bash
+   cp .env.example .env
+   # Bewerk .env met je eigen instellingen
+   ```
+
+5. **Start de applicatie**
+   ```bash
+   python app.py
+   # of gebruik het start script
+   ./start.sh
+   ```
 
 4. **Applicatie starten**
    ```bash
