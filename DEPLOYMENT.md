@@ -57,6 +57,29 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ## 🌐 Cloudflare Tunnel Setup
 
+### Moderne Aanpak: Tunnel Token (Eenvoudigst)
+
+1. **Ga naar Cloudflare Dashboard**:
+   - https://dash.cloudflare.com → Zero Trust → Access → Tunnels
+   - "Create a tunnel" → Geef naam "uitleenschrift"
+   - Kopieer de tunnel token
+
+2. **Voeg token toe aan .env**:
+   ```bash
+   echo "CLOUDFLARE_TUNNEL_TOKEN=dein_tunnel_token_hier" >> .env
+   ```
+
+3. **Deploy met Cloudflared**:
+   ```bash
+   # Download volledig compose bestand
+   wget https://raw.githubusercontent.com/Hoite/Uitleenschrift/main/docker-compose.full.yml
+   
+   # Deploy alles tegelijk
+   docker-compose -f docker-compose.full.yml up -d
+   ```
+
+### Klassieke Aanpak: Config Bestand
+
 ### 1. Installeer Cloudflared
 
 ```bash
@@ -90,6 +113,24 @@ cloudflared tunnel route dns uitleenschrift uitleenschrift.hoite.nl
 
 ### 5. Tunnel Configuratie
 
+#### Optie A: Cloudflared als Docker Container (Aanbevolen)
+
+Maak configuratiebestand: `cloudflared-config.yml`
+
+```yaml
+tunnel: TUNNEL_ID  # Vervang met jouw tunnel ID
+credentials-file: /etc/cloudflared/TUNNEL_ID.json
+
+ingress:
+  - hostname: uitleenschrift.hoite.nl
+    service: http://host.docker.internal:5000  # Voor Docker Desktop
+    # OF voor Linux servers:
+    # service: http://172.17.0.1:5000
+  - service: http_status:404
+```
+
+#### Optie B: Cloudflared Direct op Host
+
 Maak configuratiebestand: `/home/$USER/.cloudflared/config.yml`
 
 ```yaml
@@ -104,6 +145,30 @@ ingress:
 
 ### 6. Tunnel Service Instellen
 
+#### Optie A: Cloudflared Docker Container
+
+```bash
+# Maak cloudflared directory
+mkdir -p /opt/cloudflared
+
+# Kopieer je tunnel credentials naar de juiste locatie
+cp ~/.cloudflared/TUNNEL_ID.json /opt/cloudflared/
+
+# Run cloudflared als Docker container
+docker run -d \
+  --name cloudflared-tunnel \
+  --restart unless-stopped \
+  --network host \
+  -v /opt/cloudflared:/etc/cloudflared \
+  -v $(pwd)/cloudflared-config.yml:/etc/cloudflared/config.yml \
+  cloudflare/cloudflared:latest tunnel run
+
+# Check status
+docker logs cloudflared-tunnel
+```
+
+#### Optie B: Cloudflared Systemd Service
+
 ```bash
 # Installeer als systemd service
 sudo cloudflared service install
@@ -114,6 +179,20 @@ sudo systemctl enable cloudflared
 
 # Check status
 sudo systemctl status cloudflared
+```
+
+### 🔍 IP-adres bepalen voor Docker setup
+
+```bash
+# Vind Docker bridge IP (meestal 172.17.0.1)
+ip route show default | awk '/default/ {print $3}'
+
+# Of check Docker network
+docker network inspect bridge | grep Gateway
+
+# Test connectivity vanuit cloudflared container
+docker run --rm cloudflare/cloudflared:latest \
+  curl -I http://172.17.0.1:5000/health
 ```
 
 ## 🔄 Automatische Updates
@@ -181,6 +260,27 @@ docker logs uitleenschrift-app
 
 # Herstart container
 docker restart uitleenschrift-app
+```
+
+### Database Problemen (SQLite Permission Error)
+
+**Symptoom**: `sqlite3.OperationalError: unable to open database file`
+
+**Oplossing**:
+```bash
+# Stop container
+docker stop uitleenschrift-app
+
+# Zorg dat instance directory bestaat en juiste permissions heeft
+mkdir -p ./instance
+chmod 755 ./instance
+
+# Herstart container
+docker start uitleenschrift-app
+
+# Of als het probleem persisteert, verwijder en hermaak:
+docker rm uitleenschrift-app
+./deploy.sh
 ```
 
 ### Cloudflare Tunnel Problemen

@@ -23,6 +23,11 @@ fi
 echo "📥 Pulling latest Docker image..."
 docker pull $IMAGE_NAME
 
+# Zorg dat instance directory bestaat met juiste permissions
+echo "📁 Creating instance directory..."
+mkdir -p ./instance
+chmod 755 ./instance
+
 # Stop en verwijder oude container (als deze bestaat)
 if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
     echo "🛑 Stopping existing container..."

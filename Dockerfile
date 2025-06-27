@@ -19,6 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Kopieer applicatie code
 COPY . .
 
+# Maak instance directory voor database
+RUN mkdir -p /app/instance && chmod 755 /app/instance
+
 # Maak een non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
