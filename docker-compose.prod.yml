@@ -13,6 +13,8 @@ services:
     volumes:
       - ./instance:/app/instance
     restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
