@@ -360,6 +360,11 @@ def print_compact():
                          today=date.today(),
                          gebruiker=current_user.username)
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint voor Docker"""
+    return {'status': 'healthy', 'timestamp': datetime.now().isoformat()}, 200
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

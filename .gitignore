@@ -90,3 +90,12 @@ config.py
 # Test files (temporary)
 test_*.py
 *_test.py
+
+# Docker volumes & data
+/instance/*.db
+/instance/uploads/
+docker-compose.override.yml
+
+# Deployment specific (server only)
+backup-*.tar.gz
+*.log.*

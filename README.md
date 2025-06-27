@@ -5,6 +5,9 @@ Een elegante Flask web applicatie om bij te houden welke boeken je hebt uitgelee
 ![Python](https://img.shields.io/badge/python-v3.8+-blue.svg)
 ![Flask](https://img.shields.io/badge/flask-2.0+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
+![Build Status](https://github.com/Hoite/Uitleenschrift/workflows/Build%20and%20Push%20Docker%20Image/badge.svg)
+![Docker Image](https://img.shields.io/badge/docker%20hub-hoite%2Fuitleenschrift-blue)
 
 ## ✨ Functionaliteiten
 
@@ -120,6 +123,43 @@ De applicatie gebruikt SQLite als database, die automatisch wordt aangemaakt als
 - **Forms**: Flask-WTF + WTForms
 - **Frontend**: Bootstrap 5 + Bootstrap Icons
 - **Wachtwoord beveiliging**: Werkzeug password hashing
+- **Deployment**: Docker + Docker Compose
+- **CI/CD**: GitHub Actions
+- **Hosting**: Docker container met Cloudflare tunnel
+
+## 🐳 Docker Deployment
+
+### Lokaal Testen
+```bash
+# Build en run met Docker Compose
+docker-compose up --build
+
+# Of alleen build
+docker build -t uitleenschrift .
+docker run -p 5000:5000 --env-file .env uitleenschrift
+```
+
+### Productie Deployment
+```bash
+# Download deployment script
+wget https://raw.githubusercontent.com/Hoite/Uitleenschrift/main/deploy.sh
+chmod +x deploy.sh
+
+# Configureer environment
+cp .env.example .env
+# Edit .env met je eigen waardes
+
+# Deploy
+./deploy.sh
+```
+
+Zie [DEPLOYMENT.md](DEPLOYMENT.md) voor complete server setup instructies.
+
+## 🔄 Automatische Updates
+
+- **GitHub Actions**: Bouwt automatisch nieuwe Docker images bij commits
+- **Watchtower**: Checkt en update containers automatisch
+- **Health Checks**: Monitort applicatie status
 
 ## Mogelijke uitbreidingen
 
@@ -130,3 +170,4 @@ De applicatie gebruikt SQLite als database, die automatisch wordt aangemaakt als
 - Foto's van boeken
 - Multiple leners per boek
 - Geschiedenis/logboek van wijzigingen
+- Multi-tenant support voor meerdere gebruikers
