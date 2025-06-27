@@ -29,6 +29,21 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 # Kopieer applicatie code
 COPY --chown=appuser:appuser . .
 
+# Maak een script om permissies te fixen bij startup
+USER root
+RUN echo '#!/bin/bash\n\
+# Fix permissions voor instance directory als die gemount is\n\
+if [ -d "/app/instance" ]; then\n\
+    chown -R appuser:appuser /app/instance\n\
+    chmod 755 /app/instance\n\
+fi\n\
+# Switch naar appuser en start de applicatie\n\
+exec su appuser -c "python app.py"' > /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
+
+# Switch terug naar appuser voor de rest
+USER appuser
+
 # Maak instance directory voor database
 RUN mkdir -p /app/instance && chmod 755 /app/instance
 
@@ -46,4 +61,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:5000/health || exit 1
 
 # Start commando
-CMD ["python", "app.py"]
+CMD ["/app/entrypoint.sh"]
