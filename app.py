@@ -23,6 +23,73 @@ def get_app_version():
     except FileNotFoundError:
         return '1.0.0'  # Default versie
 
+# Reminder Functions
+def calculate_reminder_status(uitlening):
+    """Bereken reminder status voor een uitlening"""
+    if uitlening.teruggegeven or not uitlening.verwachte_teruggave:
+        return None
+    
+    today = date.today()
+    days_until_due = (uitlening.verwachte_teruggave - today).days
+    
+    if days_until_due > 3:
+        return None  # Nog geen reminder nodig
+    elif days_until_due == 3 or days_until_due == 2 or days_until_due == 1:
+        return {
+            'type': 'warning',
+            'days': days_until_due,
+            'message': f'Boek "{uitlening.boek_titel}" moet over {days_until_due} dag{"en" if days_until_due > 1 else ""} terug',
+            'urgency': 'medium'
+        }
+    elif days_until_due == 0:
+        return {
+            'type': 'due_today',
+            'days': 0,
+            'message': f'Boek "{uitlening.boek_titel}" moet vandaag terug!',
+            'urgency': 'high'
+        }
+    else:  # days_until_due < 0
+        days_overdue = abs(days_until_due)
+        return {
+            'type': 'overdue',
+            'days': days_overdue,
+            'message': f'Boek "{uitlening.boek_titel}" is {days_overdue} dag{"en" if days_overdue > 1 else ""} te laat!',
+            'urgency': 'critical'
+        }
+
+def get_user_reminders(user_id):
+    """Haal alle actieve reminders op voor een gebruiker"""
+    uitleningen = Uitlening.query.filter_by(user_id=user_id, teruggegeven=False).all()
+    reminders = []
+    
+    for uitlening in uitleningen:
+        reminder = calculate_reminder_status(uitlening)
+        if reminder:
+            reminder['uitlening_id'] = uitlening.id
+            reminder['book_title'] = uitlening.boek_titel
+            reminder['borrower'] = uitlening.uitgeleend_aan
+            reminder['due_date'] = uitlening.verwachte_teruggave
+            reminders.append(reminder)
+    
+    # Sorteer op urgentie (critical > high > medium)
+    urgency_order = {'critical': 0, 'high': 1, 'medium': 2}
+    reminders.sort(key=lambda r: urgency_order.get(r['urgency'], 3))
+    
+    return reminders
+
+def get_reminder_statistics(user_id):
+    """Haal reminder statistieken op voor dashboard"""
+    reminders = get_user_reminders(user_id)
+    
+    stats = {
+        'total': len(reminders),
+        'critical': len([r for r in reminders if r['urgency'] == 'critical']),
+        'high': len([r for r in reminders if r['urgency'] == 'high']),
+        'medium': len([r for r in reminders if r['urgency'] == 'medium'])
+    }
+    
+    return stats
+
 # Custom DateField voor DD/MM/YYYY formaat met date helpers
 class DutchDateField(DateField):
     """DateField dat DD/MM/YYYY formaat ondersteunt met date helpers"""
@@ -396,11 +463,17 @@ def dashboard():
         'teruggegeven': teruggegeven
     }
     
+    # Haal reminders op
+    reminders = get_user_reminders(current_user.id)
+    reminder_stats = get_reminder_statistics(current_user.id)
+    
     # Voeg huidige datum toe aan template context
     return render_template('dashboard.html', 
                          uitgeleende_boeken=uitgeleende_boeken,
                          teruggegeven_boeken=teruggegeven_boeken,
                          stats=stats,
+                         reminders=reminders,
+                         reminder_stats=reminder_stats,
                          today=date.today())
 
 @app.route('/nieuwe_uitlening', methods=['GET', 'POST'])
@@ -562,6 +635,34 @@ def version_info():
         'environment': os.environ.get('FLASK_ENV', 'development')
     }, 200
 
+@app.route('/api/reminders')
+@login_required
+def api_reminders():
+    """API endpoint voor het ophalen van reminders voor de huidige gebruiker"""
+    reminders = get_user_reminders(current_user.id)
+    reminder_stats = get_reminder_statistics(current_user.id)
+    
+    return {
+        'reminders': reminders,
+        'stats': reminder_stats,
+        'timestamp': datetime.now().isoformat(),
+        'user_id': current_user.id
+    }, 200
+
+@app.route('/api/dismiss_reminder/<int:uitlening_id>', methods=['POST'])
+@login_required
+def dismiss_reminder(uitlening_id):
+    """API endpoint om een reminder tijdelijk te dismissen (client-side)"""
+    uitlening = Uitlening.query.filter_by(id=uitlening_id, user_id=current_user.id).first()
+    if not uitlening:
+        return {'error': 'Uitlening niet gevonden'}, 404
+    
+    return {
+        'success': True,
+        'message': f'Reminder voor "{uitlening.boek_titel}" tijdelijk genegeerd',
+        'uitlening_id': uitlening_id
+    }, 200
+
 @app.route('/api/lookup_book', methods=['POST'])
 @login_required
 def lookup_book():
@@ -576,6 +677,13 @@ def lookup_book():
     # Haal meerdere matches op
     book_matches = get_book_matches(titel, auteur, max_results=5)
     return jsonify(book_matches)
+
+@app.route('/api/reminders', methods=['GET'])
+@login_required
+def api_reminders():
+    """API endpoint om alle actieve reminders voor de ingelogde gebruiker op te halen"""
+    reminders = get_user_reminders(current_user.id)
+    return jsonify(reminders)
 
 if __name__ == '__main__':
     with app.app_context():

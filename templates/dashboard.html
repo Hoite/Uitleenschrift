@@ -34,7 +34,7 @@
 
 <!-- Statistieken -->
 <div class="row mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card stats-card bg-primary text-white">
             <div class="card-body text-center">
                 <div class="logo-container mb-2">
@@ -48,7 +48,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card stats-card bg-warning text-white">
             <div class="card-body text-center">
                 <div class="logo-container mb-2">
@@ -59,7 +59,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card stats-card bg-success text-white">
             <div class="card-body text-center">
                 <div class="logo-container mb-2">
@@ -70,7 +70,74 @@
             </div>
         </div>
     </div>
+    <div class="col-md-3">
+        <div class="card stats-card {% if reminder_stats.critical > 0 %}bg-danger{% elif reminder_stats.high > 0 %}bg-warning{% elif reminder_stats.medium > 0 %}bg-info{% else %}bg-secondary{% endif %} text-white">
+            <div class="card-body text-center">
+                <div class="logo-container mb-2">
+                    <i class="bi bi-bell{% if reminder_stats.total > 0 %}-fill{% endif %}" style="font-size: 2.5rem;"></i>
+                </div>
+                <h3 class="mt-2">{{ reminder_stats.total }}</h3>
+                <p class="mb-0">🔔 Reminders</p>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Reminders Sectie -->
+{% if reminders %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-bell-fill text-warning"></i> 
+            Actieve Reminders ({{ reminders|length }})
+            <button class="btn btn-sm btn-outline-secondary ms-2" id="dismissAllBtn" title="Negeer alle reminders voor vandaag">
+                <i class="bi bi-eye-slash"></i> Negeer Alle
+            </button>
+        </h5>
+    </div>
+    <div class="card-body">
+        <div id="remindersContainer">
+            {% for reminder in reminders %}
+            <div class="alert alert-{% if reminder.urgency == 'critical' %}danger{% elif reminder.urgency == 'high' %}warning{% else %}info{% endif %} d-flex justify-content-between align-items-center mb-2" 
+                 data-reminder-id="{{ reminder.uitlening_id }}" id="reminder-{{ reminder.uitlening_id }}">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-{% if reminder.urgency == 'critical' %}exclamation-triangle-fill{% elif reminder.urgency == 'high' %}exclamation-circle-fill{% else %}info-circle-fill{% endif %} me-2"></i>
+                    <div>
+                        <strong>{{ reminder.message }}</strong>
+                        <br>
+                        <small class="text-muted">
+                            Uitgeleend aan: {{ reminder.borrower }} | 
+                            Deadline: {{ reminder.due_date.strftime('%d-%m-%Y') }}
+                        </small>
+                    </div>
+                </div>
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="{{ url_for('bewerken_uitlening', id=reminder.uitlening_id) }}" 
+                       class="btn btn-outline-primary">
+                        <i class="bi bi-pencil"></i> Bewerken
+                    </a>
+                    <button class="btn btn-outline-secondary dismiss-reminder" 
+                            data-reminder-id="{{ reminder.uitlening_id }}"
+                            title="Negeer reminder voor vandaag">
+                        <i class="bi bi-eye-slash"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Browser Notification Permission -->
+        <div class="mt-3">
+            <button id="enableNotificationsBtn" class="btn btn-outline-info btn-sm" style="display: none;">
+                <i class="bi bi-bell"></i> Schakel Browser Notificaties In
+            </button>
+            <small class="text-muted d-block mt-1">
+                💡 Tip: Schakel browser notificaties in om automatische reminders te ontvangen
+            </small>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Uitgeleende Boeken -->
 <div class="card mb-4">
@@ -246,4 +313,202 @@
     </div>
 </div>
 {% endif %}
+
+<script>
+// Reminder en Notification functionaliteit
+document.addEventListener('DOMContentLoaded', function() {
+    // Urgent reminders data from server
+    const urgentReminders = {{ (reminders|selectattr("urgency", "in", ["critical", "high"])|list)|tojson|safe }};
+    
+    // Check notification permission status
+    checkNotificationPermission();
+    
+    // Setup event listeners
+    setupReminderEventListeners();
+    
+    // Check voor nieuwe reminders elke 5 minuten
+    setInterval(checkForNewReminders, 5 * 60 * 1000);
+    
+    // Toon browser notificaties voor urgent reminders
+    showUrgentNotifications(urgentReminders);
+});
+
+function checkNotificationPermission() {
+    const enableBtn = document.getElementById('enableNotificationsBtn');
+    
+    if ('Notification' in window) {
+        if (Notification.permission === 'default') {
+            enableBtn.style.display = 'inline-block';
+        } else if (Notification.permission === 'granted') {
+            enableBtn.style.display = 'none';
+        } else {
+            enableBtn.style.display = 'none';
+        }
+    } else {
+        enableBtn.style.display = 'none';
+    }
+}
+
+function setupReminderEventListeners() {
+    // Enable notifications button
+    const enableBtn = document.getElementById('enableNotificationsBtn');
+    if (enableBtn) {
+        enableBtn.addEventListener('click', requestNotificationPermission);
+    }
+    
+    // Dismiss individual reminder buttons
+    document.querySelectorAll('.dismiss-reminder').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const reminderId = this.getAttribute('data-reminder-id');
+            dismissReminder(reminderId);
+        });
+    });
+    
+    // Dismiss all reminders button
+    const dismissAllBtn = document.getElementById('dismissAllBtn');
+    if (dismissAllBtn) {
+        dismissAllBtn.addEventListener('click', dismissAllReminders);
+    }
+}
+
+function requestNotificationPermission() {
+    if ('Notification' in window) {
+        Notification.requestPermission().then(function(permission) {
+            if (permission === 'granted') {
+                showNotification('🔔 Notificaties Ingeschakeld', 
+                    'Je ontvangt nu browser notificaties voor urgente reminders!', 'success');
+                checkNotificationPermission();
+            }
+        });
+    }
+}
+
+function showNotification(title, body, type = 'info') {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        const icon = type === 'warning' ? '⚠️' : type === 'danger' ? '🚨' : '🔔';
+        
+        const notification = new Notification(title, {
+            body: body,
+            icon: '/static/favicon.ico',
+            badge: '/static/favicon.ico',
+            tag: 'uitleenschrift-reminder',
+            requireInteraction: type === 'danger',
+            silent: false
+        });
+        
+        notification.onclick = function() {
+            window.focus();
+            notification.close();
+        };
+        
+        // Auto close na 10 seconden voor info notifications
+        if (type === 'info' || type === 'success') {
+            setTimeout(() => notification.close(), 10000);
+        }
+    }
+}
+
+function showUrgentNotifications(urgentReminders) {
+    if (!urgentReminders || urgentReminders.length === 0) return;
+    
+    urgentReminders.forEach((reminder, index) => {
+        setTimeout(() => {
+            const title = reminder.urgency === 'critical' ? 'Kritieke Reminder' : 'Belangrijke Reminder';
+            const type = reminder.urgency === 'critical' ? 'danger' : 'warning';
+            showNotification(title, reminder.message, type);
+        }, index * 2000); // Spread notifications over time
+    });
+}
+
+function dismissReminder(reminderId) {
+    // Dismiss reminder via API
+    fetch(`/api/dismiss_reminder/${reminderId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Verberg reminder tijdelijk (tot page refresh)
+            const reminderElement = document.getElementById(`reminder-${reminderId}`);
+            if (reminderElement) {
+                reminderElement.style.opacity = '0.5';
+                reminderElement.querySelector('.dismiss-reminder').innerHTML = '<i class="bi bi-check"></i> Genegeerd';
+                reminderElement.querySelector('.dismiss-reminder').disabled = true;
+            }
+            
+            // Toon success feedback
+            showToast('Reminder tijdelijk genegeerd', 'success');
+        }
+    })
+    .catch(error => {
+        console.error('Error dismissing reminder:', error);
+        showToast('Fout bij negeren reminder', 'error');
+    });
+}
+
+function dismissAllReminders() {
+    const reminders = document.querySelectorAll('[data-reminder-id]');
+    reminders.forEach(reminder => {
+        const reminderId = reminder.getAttribute('data-reminder-id');
+        dismissReminder(reminderId);
+    });
+}
+
+function checkForNewReminders() {
+    // Haal nieuwe reminders op via API
+    fetch('/api/reminders')
+    .then(response => response.json())
+    .then(data => {
+        const currentReminderCount = document.querySelectorAll('[data-reminder-id]').length;
+        const newReminderCount = data.reminders.length;
+        
+        if (newReminderCount > currentReminderCount) {
+            // Er zijn nieuwe reminders - herlaad de pagina of update dynamisch
+            const newReminders = data.reminders.slice(currentReminderCount);
+            newReminders.forEach(reminder => {
+                if (reminder.urgency === 'critical' || reminder.urgency === 'high') {
+                    const title = reminder.urgency === 'critical' ? 'Kritieke Reminder' : 'Belangrijke Reminder';
+                    const type = reminder.urgency === 'critical' ? 'danger' : 'warning';
+                    showNotification(title, reminder.message, type);
+                }
+            });
+        }
+    })
+    .catch(error => console.error('Error checking reminders:', error));
+}
+
+function showToast(message, type = 'info') {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type} position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+            <span>${message}</span>
+            <button type="button" class="btn-close" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
+}
+
+// Check reminders on page load (delayed om ervoor te zorgen dat DOM geladen is)
+setTimeout(() => {
+    const reminderCount = {{ reminder_stats.total|default(0) }};
+    if (reminderCount > 0) {
+        console.log(`Je hebt ${reminderCount} actieve reminder${reminderCount > 1 ? 's' : ''}`);
+    }
+}, 1000);
+</script>
+
 {% endblock %}
