@@ -9,8 +9,8 @@
             <i class="bi bi-book text-primary"></i> Welkom bij Uitleenschrift
         </h1>
         <p class="lead mb-4">
-            Houdt eenvoudig bij welke boeken je hebt uitgeleend en aan wie.
-            Nooit meer vergeten wie dat ene boek heeft!
+            De moderne manier om bij te houden welke boeken je hebt uitgeleend. 
+            Met automatische boekgegevens import, smart search en dark mode!
         </p>
         
         {% if not current_user.is_authenticated %}
@@ -30,15 +30,84 @@
     </div>
 </div>
 
+<!-- Statistics Section -->
+{% if not current_user.is_authenticated and stats %}
+<div class="row mb-5">
+    <div class="col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <div class="d-flex justify-content-center align-items-center mb-2">
+                    <i class="bi bi-people-fill" style="font-size: 2.5rem;"></i>
+                </div>
+                <h3 class="card-title">{{ stats.total_users }}</h3>
+                <p class="card-text mb-0">👥 Geregistreerde Gebruikers</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <div class="d-flex justify-content-center align-items-center mb-2">
+                    <i class="bi bi-journal-bookmark-fill" style="font-size: 2.5rem;"></i>
+                </div>
+                <h3 class="card-title">{{ stats.total_lendings }}</h3>
+                <p class="card-text mb-0">📚 Totaal Uitgeleende Boeken</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mb-5">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-search text-primary" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">🔍 Smart Book Lookup</h5>
+                <p class="card-text">
+                    Automatische titel, auteur en cover import via Google Books API.
+                    Kies uit meerdere matches met visuele kaarten.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-globe text-primary" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">🌍 Meertalig</h5>
+                <p class="card-text">
+                    Ondersteunt Nederlandse, Engelse en internationale boeken
+                    met automatische taalherkenning en filters.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-moon-stars text-primary" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">🌙 Dark Mode</h5>
+                <p class="card-text">
+                    Modern dark theme met automatische switching. 
+                    Je voorkeur wordt onthouden tussen sessies.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-body text-center">
-                <i class="bi bi-book-half text-primary" style="font-size: 3rem;"></i>
-                <h5 class="card-title mt-3">Boeken Beheren</h5>
+                <i class="bi bi-image text-primary" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">📸 Automatische Covers</h5>
                 <p class="card-text">
-                    Voeg eenvoudig nieuwe uitleningen toe met alle belangrijke details
-                    zoals titel, auteur en aan wie het uitgeleend is.
+                    Hoge kwaliteit boekomslagen worden automatisch gedownload
+                    en kunnen handmatig worden ververst.
                 </p>
             </div>
         </div>
@@ -47,11 +116,11 @@
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-body text-center">
-                <i class="bi bi-people text-primary" style="font-size: 3rem;"></i>
-                <h5 class="card-title mt-3">Uitleningen Bijhouden</h5>
+                <i class="bi bi-calendar-date text-primary" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">📅 Date Helpers</h5>
                 <p class="card-text">
-                    Zie in één oogopslag welke boeken nog uitstaan en welke
-                    al zijn teruggegeven.
+                    "Vandaag" en "+2 weken" knoppen voor snelle datuminvoer.
+                    Auto-save in localStorage tijdens typen.
                 </p>
             </div>
         </div>
@@ -60,11 +129,11 @@
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-body text-center">
-                <i class="bi bi-calendar-check text-primary" style="font-size: 3rem;"></i>
-                <h5 class="card-title mt-3">Data Overzicht</h5>
+                <i class="bi bi-printer text-primary" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">🖨️ Print Support</h5>
                 <p class="card-text">
-                    Houdt bij vanaf wanneer boeken zijn uitgeleend en wanneer
-                    ze verwacht worden terug te komen.
+                    Compacte en volledige print layouts voor fysieke overzichten
+                    van je uitgeleende boeken.
                 </p>
             </div>
         </div>

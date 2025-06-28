@@ -317,7 +317,17 @@ class BewerkenForm(FlaskForm):
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    return render_template('index.html')
+    
+    # Global statistics for non-authenticated users
+    total_users = User.query.count()
+    total_lendings = Uitlening.query.count()
+    
+    stats = {
+        'total_users': total_users,
+        'total_lendings': total_lendings
+    }
+    
+    return render_template('index.html', stats=stats)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

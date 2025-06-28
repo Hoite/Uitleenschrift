@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl" data-bs-theme="light">
+<html lang="nl" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -333,7 +333,7 @@
         
         // Initialize theme on page load
         document.addEventListener('DOMContentLoaded', function() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
+            const savedTheme = localStorage.getItem('theme') || 'dark'; // Changed default to dark
             const html = document.documentElement;
             const themeIcon = document.getElementById('theme-icon');
             
