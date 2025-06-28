@@ -306,6 +306,7 @@ function createMatchCard(match, index) {
                         <p class="text-muted mb-1 small text-truncate" title="${match.author}">${match.author}</p>
                         ${publisherInfo ? `<p class="text-muted mb-1 small text-truncate">${publisherInfo}</p>` : ''}
                         ${categoriesText ? `<p class="text-muted mb-1 small text-truncate"><i class="bi bi-tag"></i> ${categoriesText}</p>` : ''}
+                        ${match.language_display ? `<p class="text-muted mb-1 small"><i class="bi bi-globe"></i> ${match.language_display}</p>` : ''}
                         ${match.page_count ? `<p class="text-muted mb-0 small">${match.page_count} pagina's</p>` : ''}
                     </div>
                 </div>

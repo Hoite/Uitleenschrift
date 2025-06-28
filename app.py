@@ -100,6 +100,7 @@ class Uitlening(db.Model):
 def get_book_matches(titel, auteur, max_results=5):
     """
     Haal meerdere boekmatches op via de Google Books API
+    Zoekt zowel in Nederlandse als Engelse boeken voor betere resultaten
     Retourneert: {
         'found': True/False,
         'matches': [list of book objects],
@@ -111,15 +112,65 @@ def get_book_matches(titel, auteur, max_results=5):
         return {'found': False, 'matches': [], 'count': 0}
         
     try:
+        all_matches = []
+        seen_titles = set()  # Om duplicaten te voorkomen
+        
+        # Zoek eerst zonder taalfilter (internationale resultaten)
+        matches_international = _search_books_with_params(titel, auteur, max_results, language_filter=None)
+        
+        # Voeg unieke matches toe
+        for match in matches_international:
+            title_key = f"{match['title'].lower()}_{match['author'].lower()}"
+            if title_key not in seen_titles:
+                seen_titles.add(title_key)
+                all_matches.append(match)
+        
+        # Als we nog niet genoeg hebben, zoek specifiek in Nederlandse boeken
+        if len(all_matches) < max_results:
+            remaining_slots = max_results - len(all_matches)
+            matches_dutch = _search_books_with_params(titel, auteur, remaining_slots, language_filter='nl')
+            
+            for match in matches_dutch:
+                title_key = f"{match['title'].lower()}_{match['author'].lower()}"
+                if title_key not in seen_titles and len(all_matches) < max_results:
+                    seen_titles.add(title_key)
+                    all_matches.append(match)
+        
+        # Update index nummers
+        for i, match in enumerate(all_matches):
+            match['index'] = i
+        
+        if all_matches:
+            return {
+                'found': True,
+                'matches': all_matches[:max_results],
+                'count': len(all_matches[:max_results])
+            }
+        else:
+            return {'found': False, 'matches': [], 'count': 0}
+        
+    except Exception as e:
+        print(f"Fout bij ophalen boekgegevens: {e}")
+        return {'found': False, 'matches': [], 'count': 0}
+
+def _search_books_with_params(titel, auteur, max_results, language_filter=None):
+    """
+    Helper functie om boeken te zoeken met specifieke parameters
+    """
+    try:
         # Maak een zoekquery
         query = f"{titel} {auteur}".strip()
         if not query:
-            return {'found': False, 'matches': [], 'count': 0}
+            return []
             
         encoded_query = urllib.parse.quote(query)
         
-        # Google Books API endpoint met API key - meer resultaten
+        # Google Books API endpoint met API key
         url = f"https://www.googleapis.com/books/v1/volumes?q={encoded_query}&maxResults={max_results}&key={GOOGLE_BOOKS_API_KEY}"
+        
+        # Voeg taalfilter toe indien gespecificeerd
+        if language_filter:
+            url += f"&langRestrict={language_filter}"
         
         # API call
         response = requests.get(url, timeout=5)
@@ -153,6 +204,17 @@ def get_book_matches(titel, auteur, max_results=5):
                                 cover_url = cover_url.replace('http://', 'https://')
                             break
                     
+                    # Bepaal taal voor display (met fallback)
+                    book_language = volume_info.get('language', 'unknown')
+                    language_display = {
+                        'nl': '🇳🇱 Nederlands',
+                        'en': '🇬🇧 Engels', 
+                        'de': '🇩🇪 Duits',
+                        'fr': '🇫🇷 Frans',
+                        'es': '🇪🇸 Spaans',
+                        'it': '🇮🇹 Italiaans'
+                    }.get(book_language, f'🌍 {book_language.upper()}' if book_language != 'unknown' else '')
+                    
                     # Maak match object
                     match = {
                         'index': index,
@@ -166,22 +228,19 @@ def get_book_matches(titel, auteur, max_results=5):
                         'description': volume_info.get('description', '')[:200] + '...' if volume_info.get('description', '') and len(volume_info.get('description', '')) > 200 else volume_info.get('description', ''),
                         'page_count': volume_info.get('pageCount', ''),
                         'categories': volume_info.get('categories', []),
-                        'language': volume_info.get('language', ''),
+                        'language': book_language,
+                        'language_display': language_display,
                         'preview_link': volume_info.get('previewLink', '')
                     }
                     matches.append(match)
                 
-                return {
-                    'found': True,
-                    'matches': matches,
-                    'count': len(matches)
-                }
+                return matches
         
-        return {'found': False, 'matches': [], 'count': 0}
+        return []
         
     except Exception as e:
-        print(f"Fout bij ophalen boekgegevens: {e}")
-        return {'found': False, 'matches': [], 'count': 0}
+        print(f"Fout bij zoeken in boeken met taal {language_filter}: {e}")
+        return []
 
 # Functie om enkele boekgegevens op te halen (backward compatibility)
 def get_book_info(titel, auteur):
