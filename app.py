@@ -678,13 +678,6 @@ def lookup_book():
     book_matches = get_book_matches(titel, auteur, max_results=5)
     return jsonify(book_matches)
 
-@app.route('/api/reminders', methods=['GET'])
-@login_required
-def api_reminders():
-    """API endpoint om alle actieve reminders voor de ingelogde gebruiker op te halen"""
-    reminders = get_user_reminders(current_user.id)
-    return jsonify(reminders)
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
