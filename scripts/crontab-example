@@ -1,0 +1,23 @@
+# Uitleenschrift Crontab Setup
+# Voeg deze regels toe aan je crontab voor automatische backups en monitoring
+
+# Automatische backup elke dag om 3:00 AM
+0 3 * * * cd /path/to/Uitleenschrift && ./scripts/backup.sh >> /var/log/uitleenschrift-backup.log 2>&1
+
+# Health check elke 15 minuten (optioneel)
+# */15 * * * * cd /path/to/Uitleenschrift && ./scripts/health-check.sh >> /var/log/uitleenschrift-health.log 2>&1
+
+# Cleanup Docker system elke week op zondag om 4:00 AM
+0 4 * * 0 docker system prune -f >> /var/log/docker-cleanup.log 2>&1
+
+# Setup instructies:
+# 1. Vervang /path/to/Uitleenschrift met je echte pad
+# 2. Voeg toe aan crontab: crontab -e
+# 3. Plak de gewenste regels
+# 4. Sla op en sluit af
+
+# Voorbeeld voor installatie:
+# cd /opt/Uitleenschrift  # Of waar je project staat
+# crontab -e
+# Voeg de regel toe voor backup:
+# 0 3 * * * cd /opt/Uitleenschrift && ./scripts/backup.sh >> /var/log/uitleenschrift-backup.log 2>&1

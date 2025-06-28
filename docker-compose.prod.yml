@@ -11,6 +11,8 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY}
       - DATABASE_URL=sqlite:////app/instance/uitleenschrift.db
+      - DOMAIN_NAME=${DOMAIN_NAME:-uitleenschrift.nl}
+      - DEBUG=False
     volumes:
       - ./instance:/app/instance
     restart: unless-stopped
@@ -23,7 +25,38 @@ services:
       retries: 3
       start_period: 40s
 
-  # Optioneel: Watchtower voor automatische updates
+  # Cloudflare Tunnel (Token-based - Recommended)
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: uitleenschrift-cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - app
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    profiles:
+      - "tunnel-token"
+
+  # Cloudflare Tunnel (Config-based - Alternative)
+  cloudflared-config:
+    image: cloudflare/cloudflared:latest
+    container_name: uitleenschrift-cloudflared-config
+    restart: unless-stopped
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./cloudflared-config.yml:/etc/cloudflared/config.yml:ro
+      - ./tunnel-credentials:/etc/cloudflared:ro
+    depends_on:
+      - app
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    profiles:
+      - "tunnel-config"
+
+  # Watchtower voor automatische updates
   watchtower:
     image: containrrr/watchtower
     container_name: uitleenschrift-watchtower
@@ -32,7 +65,7 @@ services:
     environment:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_INCLUDE_STOPPED=true
-      - WATCHTOWER_POLL_INTERVAL=300  # Check elke 5 minuten
+      - WATCHTOWER_POLL_INTERVAL=${WATCHTOWER_POLL_INTERVAL:-300}  # Check elke 5 minuten
       - WATCHTOWER_LABEL_ENABLE=true
     labels:
       - "com.centurylinklabs.watchtower.enable=false"  # Watchtower zichzelf niet updaten
