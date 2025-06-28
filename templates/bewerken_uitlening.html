@@ -157,6 +157,12 @@
                                     <i class="bi bi-check"></i> Markeer als Teruggegeven
                                 </a>
                             {% endif %}
+                            <a href="{{ url_for('ververs_cover', id=uitlening.id) }}" 
+                               class="btn btn-outline-info me-2"
+                               onclick="return confirm('Cover opnieuw ophalen van Google Books?')"
+                               title="Haal een nieuwe boekomslag op van Google Books">
+                                <i class="bi bi-image"></i> Update Cover
+                            </a>
                             {{ form.submit(class="btn btn-primary") }}
                         </div>
                     </div>

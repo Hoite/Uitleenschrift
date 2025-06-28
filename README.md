@@ -7,167 +7,122 @@ Een elegante Flask web applicatie om bij te houden welke boeken je hebt uitgelee
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
 ![Build Status](https://github.com/Hoite/Uitleenschrift/workflows/Build%20and%20Push%20Docker%20Image/badge.svg)
-![Docker Image](https://img.shields.io/badge/docker%20hub-hoite%2Fuitleenschrift-blue)
 
-## ✨ Functionaliteiten
+## ✨ Hoofdfunctionaliteiten
 
-- **👤 Gebruikersbeheer**: Veilige registratie, login en sessie management
-- **📖 Uitleningen bijhouden**: Beheer al je uitgeleende boeken met alle relevante details
-- **🖼️ Automatische boekomslagen**: Covers worden automatisch opgehaald via Google Books API
-- **🖨️ Print functionaliteit**: Print overzichten van uitgeleende boeken (compact & volledig)
-- **📊 Dashboard**: Overzicht van alle uitgeleende boeken met covers
-- **📝 Bewerken**: Wijzig uitleengegevens en markeer boeken als teruggegeven
-- **🔄 Cover verversen**: Handmatig nieuwe covers ophalen voor bestaande boeken
-- **📈 Statistieken**: Totaal uitgeleend, nog uitgeleend, teruggegeven
-- **🇳🇱 Nederlandse datum notatie**: DD/MM/YYYY formaat
-- **📱 Responsive design**: Bootstrap styling voor alle apparaten
+- **� Uitleenbeheer**: Voeg uitleningen toe, bewerk en markeer als teruggegeven
+- **🖼️ Smart Book Lookup**: Automatische titel/auteur/cover import via Google Books API
+- **� Multi-match Selectie**: Kies uit 3-5 boekmatches met visuele kaarten
+- **🌍 Meertalig**: Ondersteunt Nederlandse, Engelse en internationale boeken
+- **🌙 Dark Mode**: Automatische theme switching met localStorage persistence
+- **� Gebruikersbeheer**: Veilige registratie en login
+- **�️ Print Support**: Compacte en volledige overzichten
+- **📊 Dashboard**: Statistieken en overzicht met boekomslagen
+- **📱 Responsive**: Modern Bootstrap 5 design
 
-## 🚀 Installatie en gebruik
+## 🚀 Quick Start
 
-### 📋 Vereisten
-- Python 3.8 of hoger
-- pip (Python package manager)
-
-### ⚡ Quick Start
-
-1. **Clone de repository**
-   ```bash
-   git clone https://github.com/Hoite/Uitleenschrift.git
-   cd Uitleenschrift
-   ```
-
-2. **Maak een virtuele omgeving**
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate  # Linux/Mac
-   # of
-   .venv\Scripts\activate     # Windows
-   ```
-
-3. **Installeer dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configureer de applicatie**
-   ```bash
-   cp .env.example .env
-   # Bewerk .env met je eigen instellingen
-   ```
-
-5. **Start de applicatie**
-   ```bash
-   python app.py
-   # of gebruik het start script
-   ./start.sh
-   ```
-
-4. **Applicatie starten**
-   ```bash
-   /Users/hoite/Dev/Uitleenschrift/.venv/bin/python app.py
-   ```
-
-5. **Open je browser**
-   Ga naar `http://localhost:5000` om de applicatie te gebruiken.
-
-## Gebruik
-
-1. **Registreer een account** of log in als je al een account hebt
-2. **Voeg uitleningen toe** via de "Nieuwe Uitlening" knop
-3. **Bekijk je dashboard** om een overzicht te krijgen van al je uitleningen
-4. **Markeer boeken als teruggegeven** wanneer je ze terugkrijgt
-5. **Bewerk uitleningen** om gegevens aan te passen
-
-## Database
-
-De applicatie gebruikt SQLite als database, die automatisch wordt aangemaakt als `uitleenschrift.db` in de hoofdmap van de applicatie.
-
-## Beveiliging
-
-⚠️ **Belangrijk**: Voor productiegebruik moet je:
-- De `SECRET_KEY` in `app.py` wijzigen naar een veilige, willekeurige string
-- HTTPS gebruiken
-- Een productie-database configureren (PostgreSQL, MySQL, etc.)
-
-## Functies per pagina
-
-### Dashboard
-- Overzicht van alle uitgeleende boeken met covers
-- Statistieken (totaal uitgeleend, nog uitgeleend, teruggegeven)
-- Snelle acties (markeren als teruggegeven, bewerken, cover verversen, verwijderen)
-- Recente teruggegeven boeken
-- Visuele boekomslagen voor betere herkenbaarheid
-
-### Nieuwe Uitlening
-- Formulier om nieuwe uitlening toe te voegen
-- Automatische cover ophaling via Google Books API
-- Verplichte velden: titel, auteur, uitgeleend aan, datum
-- Optionele velden: verwachte teruggave, notities
-
-### Bewerken
-- Alle gegevens van een uitlening aanpassen
-- Status wijzigen (uitgeleend/teruggegeven)
-- Snelle knop om als teruggegeven te markeren
-
-### Boekomslagen
-- Automatische ophaling bij nieuwe uitleningen
-- Handmatige verversing via "Cover verversen" knop
-- Fallback placeholder voor boeken zonder cover
-- Optimale beeldkwaliteit (zoekt naar hoogste resolutie)
-
-## Technische details
-
-- **Framework**: Flask (Python)
-- **Database**: SQLite met SQLAlchemy ORM
-- **Authenticatie**: Flask-Login
-- **Forms**: Flask-WTF + WTForms
-- **Frontend**: Bootstrap 5 + Bootstrap Icons
-- **Wachtwoord beveiliging**: Werkzeug password hashing
-- **Deployment**: Docker + Docker Compose
-- **CI/CD**: GitHub Actions
-- **Hosting**: Docker container met Cloudflare tunnel
-
-## 🐳 Docker Deployment
-
-### Lokaal Testen
+### Met Docker (Aanbevolen)
 ```bash
-# Build en run met Docker Compose
-docker-compose up --build
+# Clone repository
+git clone https://github.com/Hoite/Uitleenschrift.git
+cd Uitleenschrift
 
-# Of alleen build
-docker build -t uitleenschrift .
-docker run -p 5000:5000 --env-file .env uitleenschrift
+# Configureer environment
+cp .env.example .env
+# Bewerk .env met je Google Books API key
+
+# Start met Docker Compose
+docker-compose up --build
 ```
 
-### Productie Deployment
+### Lokale Installatie
+```bash
+# Clone en setup
+git clone https://github.com/Hoite/Uitleenschrift.git
+cd Uitleenschrift
+
+# Virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+
+# Installeer dependencies
+pip install -r requirements.txt
+
+# Configureer en start
+cp .env.example .env
+python app.py
+```
+
+Ga naar `http://localhost:5000` om de applicatie te gebruiken.
+
+## 📖 Gebruik
+
+1. **Registreer** een account of log in
+2. **Voeg uitleningen toe** - typ titel/auteur en selecteer uit Google Books matches
+3. **Beheer je boeken** - bekijk dashboard met covers, statistieken en snelle acties
+4. **Dark mode** - klik op de maan/zon knop in de navbar
+5. **Print overzichten** - gebruik de print functies voor fysieke lijsten
+
+## 🏗️ Tech Stack
+
+- **Backend**: Python Flask, SQLAlchemy, Flask-Login
+- **Frontend**: Bootstrap 5, JavaScript, CSS Custom Properties
+- **Database**: SQLite (ontwikkeling), PostgreSQL compatible
+- **APIs**: Google Books API voor boekgegevens
+- **Deployment**: Docker, Docker Compose, GitHub Actions
+- **Features**: CSRF protection, password hashing, responsive design
+
+## 📚 Documentatie
+
+Volledige documentatie is beschikbaar in de [`docs/`](docs/) map:
+
+- [**Deployment Guide**](docs/DEPLOYMENT.md) - Server setup en productie deployment
+- [**Multi-Match Feature**](docs/MULTI_MATCH_IMPLEMENTATION.md) - Boek selectie functionaliteit
+- [**Multilingual Support**](docs/MULTILANG_UPDATE.md) - Internationale boeken ondersteuning
+- [**Dark Mode Implementation**](docs/DARK_MODE_IMPLEMENTATION.md) - Theme switching technische details
+
+## 🐳 Production Deployment
+
+Voor production deployment met automatische updates:
+
 ```bash
 # Download deployment script
 wget https://raw.githubusercontent.com/Hoite/Uitleenschrift/main/deploy.sh
 chmod +x deploy.sh
 
-# Configureer environment
+# Configureer en deploy
 cp .env.example .env
-# Edit .env met je eigen waardes
-
-# Deploy
+# Edit .env met productie waardes
 ./deploy.sh
 ```
 
-Zie [DEPLOYMENT.md](DEPLOYMENT.md) voor complete server setup instructies.
+Zie [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) voor complete server setup instructies.
 
 ## 🔄 Automatische Updates
 
-- **GitHub Actions**: Bouwt automatisch nieuwe Docker images bij commits
-- **Watchtower**: Checkt en update containers automatisch
+- **GitHub Actions**: Bouwt automatisch Docker images bij commits
+- **Watchtower**: Automatische container updates
 - **Health Checks**: Monitort applicatie status
 
-## Mogelijke uitbreidingen
+## 🤝 Contributing
 
-- Email notificaties voor late teruggaves
-- Barcode scanning voor boeken
-- Export functionaliteit (CSV, PDF)
-- Categorie/genre tags
-- Foto's van boeken
-- Multiple leners per boek
-- Geschiedenis/logboek van wijzigingen
-- Multi-tenant support voor meerdere gebruikers
+1. Fork de repository
+2. Maak een feature branch (`git checkout -b feature/nieuwe-functie`)
+3. Commit je wijzigingen (`git commit -am 'Voeg nieuwe functie toe'`)
+4. Push naar branch (`git push origin feature/nieuwe-functie`)
+5. Maak een Pull Request
+
+## 📄 Licentie
+
+Dit project staat onder de MIT License - zie het [LICENSE](LICENSE) bestand voor details.
+
+## 🙏 Dankbetuigingen
+
+- Google Books API voor boekgegevens en covers
+- Bootstrap voor het responsive framework
+- Flask community voor de geweldige libraries
+
+---
+
+**Made with ❤️ in Nederland**
