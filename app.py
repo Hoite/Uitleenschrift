@@ -15,12 +15,15 @@ from dotenv import load_dotenv
 # Laad environment variabelen uit .env bestand (voor lokale development)
 load_dotenv()
 
-# Custom DateField voor DD/MM/YYYY formaat
+# Custom DateField voor DD/MM/YYYY formaat met date helpers
 class DutchDateField(DateField):
-    """DateField dat DD/MM/YYYY formaat ondersteunt"""
+    """DateField dat DD/MM/YYYY formaat ondersteunt met date helpers"""
     
-    def __init__(self, label=None, validators=None, **kwargs):
+    def __init__(self, label=None, validators=None, show_today_button=True, show_default_return=False, default_return_days=7, **kwargs):
         super(DutchDateField, self).__init__(label, validators, **kwargs)
+        self.show_today_button = show_today_button
+        self.show_default_return = show_default_return
+        self.default_return_days = default_return_days
     
     def process_formdata(self, valuelist):
         if valuelist:
@@ -167,8 +170,8 @@ class UitleningForm(FlaskForm):
     boek_titel = StringField('Boek Titel', validators=[InputRequired(), Length(min=1, max=200)])
     auteur = StringField('Auteur', validators=[InputRequired(), Length(min=1, max=100)])
     uitgeleend_aan = StringField('Uitgeleend aan', validators=[InputRequired(), Length(min=1, max=100)])
-    uitgeleend_vanaf = DutchDateField('Uitgeleend vanaf', default=date.today, validators=[InputRequired()])
-    verwachte_teruggave = DutchDateField('Verwachte teruggave (optioneel)', validators=[Optional()])
+    uitgeleend_vanaf = DutchDateField('Uitgeleend vanaf', default=date.today, validators=[InputRequired()], show_today_button=True)
+    verwachte_teruggave = DutchDateField('Verwachte teruggave (optioneel)', validators=[Optional()], show_today_button=True, show_default_return=True, default_return_days=14)
     notities = TextAreaField('Notities')
     submit = SubmitField('Uitlening toevoegen')
 
@@ -176,8 +179,8 @@ class BewerkenForm(FlaskForm):
     boek_titel = StringField('Boek Titel', validators=[InputRequired(), Length(min=1, max=200)])
     auteur = StringField('Auteur', validators=[InputRequired(), Length(min=1, max=100)])
     uitgeleend_aan = StringField('Uitgeleend aan', validators=[InputRequired(), Length(min=1, max=100)])
-    uitgeleend_vanaf = DutchDateField('Uitgeleend vanaf', validators=[InputRequired()])
-    verwachte_teruggave = DutchDateField('Verwachte teruggave (optioneel)', validators=[Optional()])
+    uitgeleend_vanaf = DutchDateField('Uitgeleend vanaf', validators=[InputRequired()], show_today_button=True)
+    verwachte_teruggave = DutchDateField('Verwachte teruggave (optioneel)', validators=[Optional()], show_today_button=True, show_default_return=True, default_return_days=14)
     notities = TextAreaField('Notities')
     teruggegeven = StringField('Teruggegeven (ja/nee)')
     submit = SubmitField('Wijzigingen opslaan')

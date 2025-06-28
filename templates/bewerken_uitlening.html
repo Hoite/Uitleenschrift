@@ -57,7 +57,12 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             {{ form.uitgeleend_vanaf.label(class="form-label") }}
-                            {{ form.uitgeleend_vanaf(class="form-control", placeholder="dd/mm/yyyy", type="text") }}
+                            <div class="input-group">
+                                {{ form.uitgeleend_vanaf(class="form-control", placeholder="dd/mm/yyyy", type="text", id="uitgeleend_vanaf") }}
+                                <button type="button" class="btn btn-outline-secondary" onclick="setToday('uitgeleend_vanaf')" title="Vandaag">
+                                    <i class="bi bi-calendar-date"></i> Vandaag
+                                </button>
+                            </div>
                             {% if form.uitgeleend_vanaf.errors %}
                                 <div class="text-danger mt-1">
                                     {% for error in form.uitgeleend_vanaf.errors %}
@@ -69,7 +74,15 @@
                         
                         <div class="col-md-6 mb-3">
                             {{ form.verwachte_teruggave.label(class="form-label") }}
-                            {{ form.verwachte_teruggave(class="form-control", placeholder="dd/mm/yyyy", type="text") }}
+                            <div class="input-group">
+                                {{ form.verwachte_teruggave(class="form-control", placeholder="dd/mm/yyyy", type="text", id="verwachte_teruggave") }}
+                                <button type="button" class="btn btn-outline-secondary" onclick="setToday('verwachte_teruggave')" title="Vandaag">
+                                    <i class="bi bi-calendar-date"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="setDefaultReturn('verwachte_teruggave', 14)" title="Over 2 weken">
+                                    <i class="bi bi-calendar-plus"></i> +2w
+                                </button>
+                            </div>
                             <small class="form-text text-muted">Optioneel - laat leeg om te verwijderen</small>
                             {% if form.verwachte_teruggave.errors %}
                                 <div class="text-danger mt-1">
@@ -156,4 +169,200 @@
         </div>
     </div>
 </div>
+
+<script>
+// Date helper functions
+function formatDate(date) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function setToday(fieldId) {
+    const today = new Date();
+    document.getElementById(fieldId).value = formatDate(today);
+    saveFormData(); // Save to localStorage when date is set
+}
+
+function setDefaultReturn(fieldId, days) {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + days);
+    document.getElementById(fieldId).value = formatDate(futureDate);
+    saveFormData(); // Save to localStorage when date is set
+}
+
+// LocalStorage functionality for edit form
+const STORAGE_KEY = 'edit_uitlening_form_data_{{ uitlening.id }}';
+
+function saveFormData() {
+    const formData = {
+        boek_titel: document.getElementById('boek_titel').value,
+        auteur: document.getElementById('auteur').value,
+        uitgeleend_aan: document.getElementById('uitgeleend_aan').value,
+        uitgeleend_vanaf: document.getElementById('uitgeleend_vanaf').value,
+        verwachte_teruggave: document.getElementById('verwachte_teruggave').value,
+        notities: document.getElementById('notities').value,
+        teruggegeven: document.getElementById('teruggegeven').value,
+        timestamp: new Date().toISOString()
+    };
+    
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+        showSaveIndicator();
+    } catch (e) {
+        console.log('LocalStorage not available:', e);
+    }
+}
+
+function loadFormData() {
+    try {
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (savedData) {
+            const formData = JSON.parse(savedData);
+            
+            // Only load if the data is recent (less than 24 hours old)
+            const dataAge = new Date() - new Date(formData.timestamp);
+            if (dataAge < 24 * 60 * 60 * 1000) {
+                // Check if any fields have been modified from original
+                const hasChanges = (
+                    formData.boek_titel !== document.getElementById('boek_titel').value ||
+                    formData.auteur !== document.getElementById('auteur').value ||
+                    formData.uitgeleend_aan !== document.getElementById('uitgeleend_aan').value ||
+                    formData.uitgeleend_vanaf !== document.getElementById('uitgeleend_vanaf').value ||
+                    formData.verwachte_teruggave !== document.getElementById('verwachte_teruggave').value ||
+                    formData.notities !== document.getElementById('notities').value ||
+                    formData.teruggegeven !== document.getElementById('teruggegeven').value
+                );
+                
+                if (hasChanges) {
+                    document.getElementById('boek_titel').value = formData.boek_titel || '';
+                    document.getElementById('auteur').value = formData.auteur || '';
+                    document.getElementById('uitgeleend_aan').value = formData.uitgeleend_aan || '';
+                    document.getElementById('uitgeleend_vanaf').value = formData.uitgeleend_vanaf || '';
+                    document.getElementById('verwachte_teruggave').value = formData.verwachte_teruggave || '';
+                    document.getElementById('notities').value = formData.notities || '';
+                    document.getElementById('teruggegeven').value = formData.teruggegeven || '';
+                    
+                    showRestoreIndicator();
+                }
+            }
+        }
+    } catch (e) {
+        console.log('Error loading form data:', e);
+    }
+}
+
+function clearFormData() {
+    try {
+        localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+        console.log('Error clearing form data:', e);
+    }
+}
+
+function showSaveIndicator() {
+    // Create or update save indicator
+    let indicator = document.getElementById('save-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'save-indicator';
+        indicator.className = 'position-fixed bottom-0 end-0 m-3 alert alert-success alert-dismissible fade show';
+        indicator.style.zIndex = '1050';
+        indicator.innerHTML = `
+            <i class="bi bi-check-circle"></i> Wijzigingen opgeslagen
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(indicator);
+    }
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        if (indicator && indicator.parentNode) {
+            indicator.classList.remove('show');
+            setTimeout(() => {
+                if (indicator && indicator.parentNode) {
+                    indicator.parentNode.removeChild(indicator);
+                }
+            }, 150);
+        }
+    }, 3000);
+}
+
+function showRestoreIndicator() {
+    const indicator = document.createElement('div');
+    indicator.className = 'alert alert-info alert-dismissible fade show mt-3';
+    indicator.innerHTML = `
+        <i class="bi bi-info-circle"></i> Niet-opgeslagen wijzigingen hersteld. 
+        <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="clearAndReload()">
+            <i class="bi bi-trash"></i> Wis concept
+        </button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const form = document.querySelector('.card-body form');
+    form.insertBefore(indicator, form.firstChild);
+}
+
+function clearAndReload() {
+    clearFormData();
+    location.reload();
+}
+
+// Auto-save functionality
+function setupAutoSave() {
+    const fields = ['boek_titel', 'auteur', 'uitgeleend_aan', 'uitgeleend_vanaf', 'verwachte_teruggave', 'notities', 'teruggegeven'];
+    
+    fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('input', debounce(saveFormData, 500));
+            field.addEventListener('change', saveFormData);
+        }
+    });
+}
+
+// Debounce function to limit how often saveFormData is called
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Add IDs to form fields for easier access
+    const fields = {
+        'boek_titel': document.querySelector('input[name="boek_titel"]'),
+        'auteur': document.querySelector('input[name="auteur"]'),
+        'uitgeleend_aan': document.querySelector('input[name="uitgeleend_aan"]'),
+        'notities': document.querySelector('textarea[name="notities"]'),
+        'teruggegeven': document.querySelector('input[name="teruggegeven"]')
+    };
+    
+    Object.keys(fields).forEach(key => {
+        if (fields[key]) {
+            fields[key].id = key;
+        }
+    });
+    
+    // Load saved data
+    loadFormData();
+    
+    // Setup auto-save
+    setupAutoSave();
+    
+    // Clear localStorage on successful form submission
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function() {
+        clearFormData();
+    });
+});
+</script>
 {% endblock %}
