@@ -145,22 +145,17 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <div class="btn-group btn-group-sm" role="group">
+                                <div class="btn-group" role="group">
                                     <a href="{{ url_for('markeer_teruggegeven', id=uitlening.id) }}" 
-                                       class="btn btn-success btn-sm" 
+                                       class="btn btn-success" 
                                        onclick="return confirm('Markeer dit boek als teruggegeven?')" 
                                        title="Markeer als teruggegeven">
-                                        <i class="bi bi-check"></i>
+                                        <i class="bi bi-check"></i> Markeer teruggebracht
                                     </a>
                                     <a href="{{ url_for('bewerken_uitlening', id=uitlening.id) }}" 
                                        class="btn btn-warning btn-sm" 
                                        title="Bewerken">
                                         <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <a href="{{ url_for('ververs_cover', id=uitlening.id) }}" 
-                                       class="btn btn-info btn-sm" 
-                                       title="Cover verversen">
-                                        <i class="bi bi-image"></i>
                                     </a>
                                     <a href="{{ url_for('verwijderen_uitlening', id=uitlening.id) }}" 
                                        class="btn btn-danger btn-sm" 
