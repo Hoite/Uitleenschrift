@@ -29,6 +29,13 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 # Kopieer applicatie code
 COPY --chown=appuser:appuser . .
 
+# Maak instance directory voor database met juiste permissions
+RUN mkdir -p instance && chmod 755 instance
+
+# Build-time argument voor versie
+ARG VERSION=1.0.0
+ENV APP_VERSION=$VERSION
+
 # Maak een script om permissies te fixen bij startup
 USER root
 COPY --chown=root:root entrypoint.sh /app/entrypoint.sh
@@ -36,9 +43,6 @@ RUN chmod +x /app/entrypoint.sh
 
 # Switch terug naar appuser voor de rest
 USER appuser
-
-# Maak instance directory voor database
-RUN mkdir -p /app/instance && chmod 755 /app/instance
 
 # Expose poort
 EXPOSE 5000

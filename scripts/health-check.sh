@@ -8,6 +8,14 @@ set -e
 echo "🔍 Uitleenschrift Health Check"
 echo "================================="
 
+# Show version info
+if [ -f "VERSION" ]; then
+    echo "🏷️  Version: v$(cat VERSION)"
+else
+    echo "🏷️  Version: Unknown (VERSION file not found)"
+fi
+echo ""
+
 # Check if Docker is running
 if ! docker info >/dev/null 2>&1; then
     echo "❌ Docker is not running!"

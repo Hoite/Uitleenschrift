@@ -105,6 +105,33 @@ Zie [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) voor complete server setup instruct
 - **Watchtower**: Automatische container updates
 - **Health Checks**: Monitort applicatie status
 
+## 📦 Version Management
+
+Dit project gebruikt [Semantic Versioning](https://semver.org/). Huidige versie staat in het `VERSION` bestand.
+
+### Versie Beheer
+```bash
+# Toon huidige versie
+./scripts/version.sh current
+
+# Patch versie (bugfixes): 1.0.0 → 1.0.1
+./scripts/version.sh patch
+
+# Minor versie (nieuwe features): 1.0.0 → 1.1.0
+./scripts/version.sh minor
+
+# Major versie (breaking changes): 1.0.0 → 2.0.0
+./scripts/version.sh major
+
+# Specifieke versie instellen
+./scripts/version.sh set 1.2.3
+```
+
+### Docker Tags
+- `hoite/uitleenschrift:latest` - Laatste versie van main branch
+- `hoite/uitleenschrift:1.0.0` - Specifieke versie tags
+- Automatisch gebouwd via GitHub Actions
+
 ## 🤝 Contributing
 
 1. Fork de repository

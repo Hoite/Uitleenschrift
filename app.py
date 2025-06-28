@@ -15,6 +15,14 @@ from dotenv import load_dotenv
 # Laad environment variabelen uit .env bestand (voor lokale development)
 load_dotenv()
 
+def get_app_version():
+    """Leest de applicatie versie uit VERSION bestand"""
+    try:
+        with open('VERSION', 'r') as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return '1.0.0'  # Default versie
+
 # Custom DateField voor DD/MM/YYYY formaat met date helpers
 class DutchDateField(DateField):
     """DateField dat DD/MM/YYYY formaat ondersteunt met date helpers"""
@@ -54,6 +62,14 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///instance/uitleenschrift.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Versie informatie
+APP_VERSION = get_app_version()
+
+# Maak versie beschikbaar in alle templates
+@app.context_processor
+def inject_version():
+    return dict(app_version=APP_VERSION)
 
 # Google Books API Key uit environment variabelen
 GOOGLE_BOOKS_API_KEY = os.environ.get('GOOGLE_BOOKS_API_KEY', '')
@@ -530,7 +546,21 @@ def print_compact():
 @app.route('/health')
 def health_check():
     """Health check endpoint voor Docker"""
-    return {'status': 'healthy', 'timestamp': datetime.now().isoformat()}, 200
+    return {
+        'status': 'healthy', 
+        'version': APP_VERSION,
+        'timestamp': datetime.now().isoformat()
+    }, 200
+
+@app.route('/version')
+def version_info():
+    """Versie informatie endpoint"""
+    return {
+        'version': APP_VERSION,
+        'application': 'Uitleenschrift',
+        'description': 'Moderne boek uitlening tracker',
+        'environment': os.environ.get('FLASK_ENV', 'development')
+    }, 200
 
 @app.route('/api/lookup_book', methods=['POST'])
 @login_required
