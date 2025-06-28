@@ -19,7 +19,12 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             {{ form.boek_titel.label(class="form-label") }}
-                            {{ form.boek_titel(class="form-control") }}
+                            <div class="input-group">
+                                {{ form.boek_titel(class="form-control", id="boek_titel") }}
+                                <button type="button" class="btn btn-outline-primary" onclick="lookupBook()" id="lookup-btn">
+                                    <i class="bi bi-search"></i> Zoek op
+                                </button>
+                            </div>
                             {% if form.boek_titel.errors %}
                                 <div class="text-danger mt-1">
                                     {% for error in form.boek_titel.errors %}
@@ -31,7 +36,7 @@
                         
                         <div class="col-md-6 mb-3">
                             {{ form.auteur.label(class="form-label") }}
-                            {{ form.auteur(class="form-control") }}
+                            {{ form.auteur(class="form-control", id="auteur") }}
                             {% if form.auteur.errors %}
                                 <div class="text-danger mt-1">
                                     {% for error in form.auteur.errors %}
@@ -39,6 +44,33 @@
                                     {% endfor %}
                                 </div>
                             {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Book Info Display Area -->
+                    <div id="book-info-area" class="mb-3" style="display: none;">
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start">
+                                    <img id="book-cover-preview" src="" alt="Boek cover" class="me-3" style="width: 80px; height: auto; border-radius: 4px;">
+                                    <div class="flex-grow-1">
+                                        <h6 class="card-title text-success mb-1">
+                                            <i class="bi bi-check-circle"></i> Boek gevonden in Google Books
+                                        </h6>
+                                        <p class="mb-1"><strong>Titel:</strong> <span id="found-title"></span></p>
+                                        <p class="mb-1"><strong>Auteur(s):</strong> <span id="found-author"></span></p>
+                                        <p class="mb-0"><small class="text-muted" id="found-publisher"></small></p>
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-sm btn-success" onclick="useBookInfo()">
+                                                <i class="bi bi-download"></i> Gebruik deze gegevens
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideBookInfo()">
+                                                <i class="bi bi-x"></i> Behoud huidige gegevens
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -171,6 +203,149 @@
 </div>
 
 <script>
+// Store book info for later use
+let currentBookInfo = null;
+
+// Book lookup functionality
+async function lookupBook() {
+    const title = document.getElementById('boek_titel').value.trim();
+    const author = document.getElementById('auteur').value.trim();
+    
+    if (!title && !author) {
+        alert('Voer een titel en/of auteur in om op te zoeken.');
+        return;
+    }
+    
+    const lookupBtn = document.getElementById('lookup-btn');
+    const originalText = lookupBtn.innerHTML;
+    
+    // Show loading state
+    lookupBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Zoeken...';
+    lookupBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/api/lookup_book', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: title,
+                author: author
+            })
+        });
+        
+        const bookInfo = await response.json();
+        
+        if (bookInfo.found) {
+            currentBookInfo = bookInfo;
+            showBookInfo(bookInfo);
+        } else {
+            showNoBookFound();
+        }
+        
+    } catch (error) {
+        console.error('Error looking up book:', error);
+        alert('Er is een fout opgetreden bij het opzoeken van het boek.');
+    } finally {
+        // Restore button state
+        lookupBtn.innerHTML = originalText;
+        lookupBtn.disabled = false;
+    }
+}
+
+function showBookInfo(bookInfo) {
+    // Fill in the found information
+    document.getElementById('found-title').textContent = bookInfo.title;
+    document.getElementById('found-author').textContent = bookInfo.author;
+    
+    const publisherText = [];
+    if (bookInfo.publisher) publisherText.push(bookInfo.publisher);
+    if (bookInfo.published_date) publisherText.push(bookInfo.published_date);
+    document.getElementById('found-publisher').textContent = publisherText.join(', ');
+    
+    // Show cover if available
+    const coverImg = document.getElementById('book-cover-preview');
+    if (bookInfo.cover_url) {
+        coverImg.src = bookInfo.cover_url;
+        coverImg.style.display = 'block';
+    } else {
+        coverImg.style.display = 'none';
+    }
+    
+    // Show the book info area
+    document.getElementById('book-info-area').style.display = 'block';
+}
+
+function showNoBookFound() {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-warning alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        <i class="bi bi-exclamation-triangle"></i> Geen boek gevonden met deze gegevens. 
+        De huidige gegevens blijven behouden.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const form = document.querySelector('.card-body form');
+    const bookInfoArea = document.getElementById('book-info-area');
+    form.insertBefore(alertDiv, bookInfoArea);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv && alertDiv.parentNode) {
+            alertDiv.classList.remove('show');
+            setTimeout(() => {
+                if (alertDiv && alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 150);
+        }
+    }, 5000);
+}
+
+function useBookInfo() {
+    if (currentBookInfo) {
+        // Fill the form with the official book data
+        document.getElementById('boek_titel').value = currentBookInfo.title;
+        document.getElementById('auteur').value = currentBookInfo.author;
+        
+        // Hide the book info area
+        hideBookInfo();
+        
+        // Save to localStorage
+        saveFormData();
+        
+        // Show success message
+        const successDiv = document.createElement('div');
+        successDiv.className = 'alert alert-success alert-dismissible fade show';
+        successDiv.innerHTML = `
+            <i class="bi bi-check-circle"></i> Boekgegevens bijgewerkt! 
+            Titel en auteur zijn vervangen met officiële gegevens van Google Books.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const form = document.querySelector('.card-body form');
+        form.insertBefore(successDiv, form.firstChild);
+        
+        // Auto-remove after 4 seconds
+        setTimeout(() => {
+            if (successDiv && successDiv.parentNode) {
+                successDiv.classList.remove('show');
+                setTimeout(() => {
+                    if (successDiv && successDiv.parentNode) {
+                        successDiv.parentNode.removeChild(successDiv);
+                    }
+                }, 150);
+            }
+        }, 4000);
+    }
+}
+
+function hideBookInfo() {
+    document.getElementById('book-info-area').style.display = 'none';
+    currentBookInfo = null;
+}
+
 // Date helper functions
 function formatDate(date) {
     const day = String(date.getDate()).padStart(2, '0');

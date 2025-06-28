@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -96,20 +96,26 @@ class Uitlening(db.Model):
     def __repr__(self):
         return f'<Uitlening {self.boek_titel} aan {self.uitgeleend_aan}>'
 
-# Functie om boekomslag op te halen via Google Books API
-def get_book_cover(titel, auteur):
+# Functie om boekgegevens op te halen via Google Books API
+def get_book_info(titel, auteur):
     """
-    Haal een boekomslag op via de Google Books API
+    Haal complete boekgegevens op via de Google Books API
+    Retourneert: {
+        'title': 'Official Title',
+        'authors': ['Author 1', 'Author 2'],
+        'cover_url': 'https://...',
+        'found': True/False
+    }
     """
     if not GOOGLE_BOOKS_API_KEY:
         print("Geen Google Books API key geconfigureerd")
-        return None
+        return {'found': False}
         
     try:
         # Maak een zoekquery
         query = f"{titel} {auteur}".strip()
         if not query:
-            return None
+            return {'found': False}
             
         encoded_query = urllib.parse.quote(query)
         
@@ -126,7 +132,15 @@ def get_book_cover(titel, auteur):
                 book = data['items'][0]
                 volume_info = book.get('volumeInfo', {})
                 
-                # Probeer een hoge kwaliteit cover te vinden
+                # Haal titel op
+                official_title = volume_info.get('title', titel)
+                
+                # Haal auteurs op
+                authors_list = volume_info.get('authors', [auteur] if auteur else [])
+                official_author = ', '.join(authors_list) if authors_list else auteur
+                
+                # Haal cover URL op
+                cover_url = None
                 image_links = volume_info.get('imageLinks', {})
                 
                 # Probeer verschillende cover grootten (van groot naar klein)
@@ -136,13 +150,33 @@ def get_book_cover(titel, auteur):
                         # Forceer HTTPS voor veiligheid
                         if cover_url.startswith('http://'):
                             cover_url = cover_url.replace('http://', 'https://')
-                        return cover_url
+                        break
+                
+                return {
+                    'found': True,
+                    'title': official_title,
+                    'author': official_author,
+                    'authors': authors_list,
+                    'cover_url': cover_url,
+                    'isbn': volume_info.get('industryIdentifiers', [{}])[0].get('identifier', None) if volume_info.get('industryIdentifiers') else None,
+                    'publisher': volume_info.get('publisher', ''),
+                    'published_date': volume_info.get('publishedDate', ''),
+                    'description': volume_info.get('description', '')[:500] + '...' if volume_info.get('description', '') and len(volume_info.get('description', '')) > 500 else volume_info.get('description', '')
+                }
         
-        return None
+        return {'found': False}
         
     except Exception as e:
-        print(f"Fout bij ophalen boekomslag: {e}")
-        return None
+        print(f"Fout bij ophalen boekgegevens: {e}")
+        return {'found': False}
+
+# Backward compatibility function
+def get_book_cover(titel, auteur):
+    """
+    Backward compatibility function - returns only cover URL
+    """
+    book_info = get_book_info(titel, auteur)
+    return book_info.get('cover_url') if book_info.get('found') else None
 
 # Forms
 class LoginForm(FlaskForm):
@@ -255,12 +289,24 @@ def dashboard():
 def nieuwe_uitlening():
     form = UitleningForm()
     if form.validate_on_submit():
-        # Haal automatisch een boekomslag op
-        cover_url = get_book_cover(form.boek_titel.data, form.auteur.data)
+        # Haal complete boekgegevens op via Google Books API
+        book_info = get_book_info(form.boek_titel.data, form.auteur.data)
+        
+        # Gebruik officiele gegevens indien gevonden, anders user input
+        if book_info.get('found'):
+            final_title = book_info['title']
+            final_author = book_info['author']
+            cover_url = book_info['cover_url']
+            flash_message = f'Uitlening succesvol toegevoegd! Boekgegevens geïmporteerd van Google Books: "{final_title}" door {final_author}'
+        else:
+            final_title = form.boek_titel.data
+            final_author = form.auteur.data
+            cover_url = None
+            flash_message = 'Uitlening succesvol toegevoegd! (Geen match gevonden in Google Books - handmatige gegevens gebruikt)'
         
         uitlening = Uitlening(
-            boek_titel=form.boek_titel.data,
-            auteur=form.auteur.data,
+            boek_titel=final_title,
+            auteur=final_author,
             uitgeleend_aan=form.uitgeleend_aan.data,
             uitgeleend_vanaf=form.uitgeleend_vanaf.data,
             verwachte_teruggave=form.verwachte_teruggave.data,
@@ -271,11 +317,7 @@ def nieuwe_uitlening():
         db.session.add(uitlening)
         db.session.commit()
         
-        if cover_url:
-            flash('Uitlening succesvol toegevoegd! Boekomslag automatisch gevonden.')
-        else:
-            flash('Uitlening succesvol toegevoegd! (Geen boekomslag gevonden)')
-        
+        flash(flash_message)
         return redirect(url_for('dashboard'))
     return render_template('nieuwe_uitlening.html', form=form)
 
@@ -386,6 +428,20 @@ def print_compact():
 def health_check():
     """Health check endpoint voor Docker"""
     return {'status': 'healthy', 'timestamp': datetime.now().isoformat()}, 200
+
+@app.route('/api/lookup_book', methods=['POST'])
+@login_required
+def lookup_book():
+    """AJAX endpoint voor real-time boek opzoeken"""
+    data = request.get_json()
+    titel = data.get('title', '').strip()
+    auteur = data.get('author', '').strip()
+    
+    if not titel and not auteur:
+        return jsonify({'found': False, 'error': 'Geen titel of auteur opgegeven'})
+    
+    book_info = get_book_info(titel, auteur)
+    return jsonify(book_info)
 
 if __name__ == '__main__':
     with app.app_context():
