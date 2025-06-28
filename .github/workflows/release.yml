@@ -1,0 +1,105 @@
+name: Create Release
+
+on:
+  push:
+    paths:
+      - 'VERSION'
+    branches:
+      - main
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for changelog
+
+    - name: Read version
+      id: version
+      run: |
+        VERSION=$(cat VERSION)
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "TAG=v$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Check if release exists
+      id: check_release
+      run: |
+        if git rev-parse "v${{ steps.version.outputs.VERSION }}" >/dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Generate changelog
+      id: changelog
+      if: steps.check_release.outputs.exists == 'false'
+      run: |
+        # Get previous tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        if [ -n "$PREVIOUS_TAG" ]; then
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          echo "## 🚀 What's Changed" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          
+          # Get commits since last tag
+          git log --pretty=format:"- %s" $PREVIOUS_TAG..HEAD | grep -E "(feat|fix|docs|refactor|perf|test|chore|style|ci|build)" >> $GITHUB_OUTPUT || echo "- Diverse verbeteringen en bugfixes" >> $GITHUB_OUTPUT
+          
+          echo "" >> $GITHUB_OUTPUT
+          echo "## 📦 Docker Images" >> $GITHUB_OUTPUT
+          echo "- \`hoite/uitleenschrift:latest\`" >> $GITHUB_OUTPUT
+          echo "- \`hoite/uitleenschrift:${{ steps.version.outputs.VERSION }}\`" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "## 🔄 Deployment" >> $GITHUB_OUTPUT
+          echo "Voor productie deployment:" >> $GITHUB_OUTPUT
+          echo "\`\`\`bash" >> $GITHUB_OUTPUT
+          echo "# Specifieke versie deployen:" >> $GITHUB_OUTPUT
+          echo "VERSION=${{ steps.version.outputs.VERSION }} ./deploy-production.sh" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "# Of latest gebruiken (automatisch via Watchtower):" >> $GITHUB_OUTPUT
+          echo "./deploy-production.sh" >> $GITHUB_OUTPUT
+          echo "\`\`\`" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        else
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          echo "## 🎉 Eerste Release" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "Welkom bij Uitleenschrift v${{ steps.version.outputs.VERSION }}!" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "### ✨ Hoofdfunctionaliteiten:" >> $GITHUB_OUTPUT
+          echo "- 📚 Uitleenbeheer met modern interface" >> $GITHUB_OUTPUT
+          echo "- 🔍 Smart Book Lookup via Google Books API" >> $GITHUB_OUTPUT
+          echo "- 🌍 Meertalige boeken ondersteuning" >> $GITHUB_OUTPUT
+          echo "- 🌙 Dark mode met automatische switching" >> $GITHUB_OUTPUT
+          echo "- 📱 Volledig responsive design" >> $GITHUB_OUTPUT
+          echo "- 🐳 Production-ready Docker deployment" >> $GITHUB_OUTPUT
+          echo "- 🔄 Automatische updates via Watchtower" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "## 📦 Docker Images" >> $GITHUB_OUTPUT
+          echo "- \`hoite/uitleenschrift:latest\`" >> $GITHUB_OUTPUT
+          echo "- \`hoite/uitleenschrift:${{ steps.version.outputs.VERSION }}\`" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create Release
+      if: steps.check_release.outputs.exists == 'false'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.TAG }}
+        release_name: "Uitleenschrift ${{ steps.version.outputs.TAG }}"
+        body: ${{ steps.changelog.outputs.CHANGELOG }}
+        draft: false
+        prerelease: false
+
+    - name: Update latest release
+      if: steps.check_release.outputs.exists == 'false'
+      run: |
+        echo "✅ Release ${{ steps.version.outputs.TAG }} created successfully!"
+        echo "🌐 Available at: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.TAG }}"

@@ -92,7 +92,10 @@ if [ "$1" != "current" ] && [ "$1" != "help" ]; then
     echo "  1. git add VERSION"
     echo "  2. git commit -m 'bump: version to v$(cat $VERSION_FILE)'"
     echo "  3. git push"
-    echo "  4. GitHub Actions bouwt automatisch Docker image met tag v$(cat $VERSION_FILE)"
+    echo "  4. GitHub Actions bouwt automatisch:"
+    echo "     - Docker image met tag v$(cat $VERSION_FILE)"
+    echo "     - GitHub Release met changelog"
     echo ""
+    echo "🎯 GitHub Release wordt automatisch aangemaakt door VERSION bestand wijziging!"
     echo "💡 Tip: Voeg release notes toe aan de commit beschrijving!"
 fi

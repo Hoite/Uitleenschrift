@@ -132,6 +132,19 @@ Dit project gebruikt [Semantic Versioning](https://semver.org/). Huidige versie 
 - `hoite/uitleenschrift:1.0.0` - Specifieke versie tags
 - Automatisch gebouwd via GitHub Actions
 
+### GitHub Releases
+```bash
+# Automatische releases via versie updates
+./scripts/version.sh patch
+git add VERSION && git commit -m "bump: version to v1.0.1"
+git push  # → Triggert automatische GitHub Release
+
+# Handmatige releases met custom notes
+./scripts/create-release.sh 1.1.0 release-notes.md
+```
+
+Zie [docs/GITHUB_RELEASES.md](docs/GITHUB_RELEASES.md) voor complete release management guide.
+
 ## 🤝 Contributing
 
 1. Fork de repository
