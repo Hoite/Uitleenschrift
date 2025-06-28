@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, DateField, SubmitField, TextAreaField
+from wtforms import StringField, PasswordField, DateField, SubmitField, TextAreaField, HiddenField
 from wtforms.validators import InputRequired, Length, ValidationError, Optional
 from wtforms.widgets import DateInput
 from datetime import datetime, date
@@ -392,7 +392,7 @@ class BewerkenForm(FlaskForm):
     uitgeleend_vanaf = DutchDateField('Uitgeleend vanaf', validators=[InputRequired()], show_today_button=True)
     verwachte_teruggave = DutchDateField('Verwachte teruggave (optioneel)', validators=[Optional()], show_today_button=True, show_default_return=True, default_return_days=14)
     notities = TextAreaField('Notities')
-    teruggegeven = StringField('Teruggegeven (ja/nee)')
+    teruggegeven = HiddenField('Teruggegeven')
     submit = SubmitField('Wijzigingen opslaan')
 
 # Routes

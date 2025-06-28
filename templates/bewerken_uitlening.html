@@ -2,6 +2,49 @@
 
 {% block title %}Uitlening Bewerken - Uitleenschrift{% endblock %}
 
+{% block head %}
+<style>
+.status-btn {
+    font-weight: 500;
+    border: 2px solid;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.status-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.status-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.status-btn.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.status-btn.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.status-btn.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+    opacity: 0.7;
+}
+
+.status-btn.btn-secondary:hover {
+    opacity: 0.8;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
@@ -133,9 +176,29 @@
                     </div>
                     
                     <div class="mb-3">
-                        {{ form.teruggegeven.label(class="form-label") }}
-                        {{ form.teruggegeven(class="form-control") }}
-                        <small class="form-text text-muted">Type 'ja' als het boek teruggegeven is, 'nee' als het nog uitgeleend is</small>
+                        <label class="form-label">Teruggegeven Status</label>
+                        {{ form.teruggegeven() }}
+                        <div class="row">
+                            <div class="col-6">
+                                <button type="button" 
+                                        class="btn w-100 status-btn" 
+                                        id="status-nee-btn"
+                                        onclick="setStatus('nee')"
+                                        style="transition: all 0.3s ease;">
+                                    <i class="bi bi-x-circle me-2"></i>Nog uitgeleend
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" 
+                                        class="btn w-100 status-btn" 
+                                        id="status-ja-btn"
+                                        onclick="setStatus('ja')"
+                                        style="transition: all 0.3s ease;">
+                                    <i class="bi bi-check-circle me-2"></i>Teruggegeven
+                                </button>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted mt-2">Klik op een knop om de status te wijzigen</small>
                         {% if form.teruggegeven.errors %}
                             <div class="text-danger mt-1">
                                 {% for error in form.teruggegeven.errors %}
@@ -500,6 +563,9 @@ function loadFormData() {
                     document.getElementById('notities').value = formData.notities || '';
                     document.getElementById('teruggegeven').value = formData.teruggegeven || '';
                     
+                    // Update status buttons after loading data
+                    initializeStatusButtons();
+                    
                     showRestoreIndicator();
                 }
             }
@@ -592,6 +658,40 @@ function debounce(func, wait) {
 }
 
 // Initialize when page loads
+// Status button functionality
+function setStatus(status) {
+    const hiddenField = document.getElementById('teruggegeven');
+    const neeBtn = document.getElementById('status-nee-btn');
+    const jaBtn = document.getElementById('status-ja-btn');
+    
+    hiddenField.value = status;
+    
+    if (status === 'ja') {
+        // Teruggegeven = JA: Ja knop groen, Nee knop grijs
+        jaBtn.className = 'btn btn-success w-100 status-btn';
+        neeBtn.className = 'btn btn-secondary w-100 status-btn';
+    } else {
+        // Teruggegeven = NEE: Nee knop rood, Ja knop grijs  
+        neeBtn.className = 'btn btn-danger w-100 status-btn';
+        jaBtn.className = 'btn btn-secondary w-100 status-btn';
+    }
+    
+    // Save to localStorage
+    saveFormData();
+}
+
+// Initialize status buttons based on current value
+function initializeStatusButtons() {
+    const hiddenField = document.getElementById('teruggegeven');
+    const currentStatus = hiddenField.value;
+    
+    if (currentStatus === 'ja') {
+        setStatus('ja');
+    } else {
+        setStatus('nee');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Add IDs to form fields for easier access
     const fields = {
@@ -607,6 +707,9 @@ document.addEventListener('DOMContentLoaded', function() {
             fields[key].id = key;
         }
     });
+    
+    // Initialize status buttons
+    initializeStatusButtons();
     
     // Load saved data
     loadFormData();
