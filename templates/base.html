@@ -35,6 +35,43 @@
             padding: 20px 0;
             background-color: #f8f9fa;
         }
+        .match-card {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+        }
+        .match-card:hover {
+            border-color: #198754;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            transform: translateY(-1px);
+        }
+        .match-card.border-success {
+            border-color: #198754 !important;
+            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+        }
+        .match-card .btn-success {
+            transition: all 0.2s ease;
+        }
+        .match-card:hover .btn-success {
+            background-color: #146c43;
+            border-color: #146c43;
+        }
+        .min-width-0 {
+            min-width: 0;
+        }
+        .text-truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #book-matches-area {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>

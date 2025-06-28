@@ -46,28 +46,22 @@
                         </div>
                     </div>
                     
-                    <!-- Book Info Display Area -->
-                    <div id="book-info-area" class="mb-3" style="display: none;">
-                        <div class="card border-success">
+                    <!-- Book Matches Display Area -->
+                    <div id="book-matches-area" class="mb-3" style="display: none;">
+                        <div class="card border-primary">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-search"></i> <span id="matches-count">0</span> boeken gevonden - Kies de juiste:
+                                </h6>
+                            </div>
                             <div class="card-body">
-                                <div class="d-flex align-items-start">
-                                    <img id="book-cover-preview" src="" alt="Boek cover" class="me-3" style="width: 80px; height: auto; border-radius: 4px;">
-                                    <div class="flex-grow-1">
-                                        <h6 class="card-title text-success mb-1">
-                                            <i class="bi bi-check-circle"></i> Boek gevonden in Google Books
-                                        </h6>
-                                        <p class="mb-1"><strong>Titel:</strong> <span id="found-title"></span></p>
-                                        <p class="mb-1"><strong>Auteur(s):</strong> <span id="found-author"></span></p>
-                                        <p class="mb-0"><small class="text-muted" id="found-publisher"></small></p>
-                                        <div class="mt-2">
-                                            <button type="button" class="btn btn-sm btn-success" onclick="useBookInfo()">
-                                                <i class="bi bi-download"></i> Gebruik deze gegevens
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideBookInfo()">
-                                                <i class="bi bi-x"></i> Handmatig invoeren
-                                            </button>
-                                        </div>
-                                    </div>
+                                <div id="book-matches-container" class="row">
+                                    <!-- Matches worden hier dynamisch geladen -->
+                                </div>
+                                <div class="mt-3 text-center">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="hideBookMatches()">
+                                        <i class="bi bi-x"></i> Handmatig invoeren
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -170,8 +164,9 @@
 </div>
 
 <script>
-// Store book info for later use
-let currentBookInfo = null;
+// Store book matches for later use
+let currentBookMatches = null;
+let selectedBookMatch = null;
 
 // Book lookup functionality
 async function lookupBook() {
@@ -179,7 +174,7 @@ async function lookupBook() {
     const author = document.getElementById('auteur').value.trim();
     
     if (!title && !author) {
-        alert('Voer een titel en/of auteur in om op te zoeken.');
+        showAlert('Voer een titel en/of auteur in om op te zoeken.', 'warning');
         return;
     }
     
@@ -189,6 +184,10 @@ async function lookupBook() {
     // Show loading state
     lookupBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Zoeken...';
     lookupBtn.disabled = true;
+    
+    // Hide any existing matches or alerts
+    hideBookMatches();
+    clearAlerts();
     
     try {
         const response = await fetch('/api/lookup_book', {
@@ -202,18 +201,22 @@ async function lookupBook() {
             })
         });
         
-        const bookInfo = await response.json();
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         
-        if (bookInfo.found) {
-            currentBookInfo = bookInfo;
-            showBookInfo(bookInfo);
+        const bookMatches = await response.json();
+        
+        if (bookMatches.found && bookMatches.count > 0) {
+            currentBookMatches = bookMatches;
+            showBookMatches(bookMatches);
         } else {
-            showNoBookFound();
+            showNoBookFound(title, author);
         }
         
     } catch (error) {
         console.error('Error looking up book:', error);
-        alert('Er is een fout opgetreden bij het opzoeken van het boek.');
+        showAlert(`Er is een fout opgetreden bij het opzoeken van het boek: ${error.message}`, 'danger');
     } finally {
         // Restore button state
         lookupBtn.innerHTML = originalText;
@@ -221,43 +224,144 @@ async function lookupBook() {
     }
 }
 
-function showBookInfo(bookInfo) {
-    // Fill in the found information
-    document.getElementById('found-title').textContent = bookInfo.title;
-    document.getElementById('found-author').textContent = bookInfo.author;
+function showBookMatches(bookMatches) {
+    const container = document.getElementById('book-matches-container');
+    const countSpan = document.getElementById('matches-count');
     
-    const publisherText = [];
-    if (bookInfo.publisher) publisherText.push(bookInfo.publisher);
-    if (bookInfo.published_date) publisherText.push(bookInfo.published_date);
-    document.getElementById('found-publisher').textContent = publisherText.join(', ');
+    // Update count
+    countSpan.textContent = bookMatches.count;
     
-    // Show cover if available
-    const coverImg = document.getElementById('book-cover-preview');
-    if (bookInfo.cover_url) {
-        coverImg.src = bookInfo.cover_url;
-        coverImg.style.display = 'block';
-    } else {
-        coverImg.style.display = 'none';
-    }
+    // Clear existing matches
+    container.innerHTML = '';
     
-    // Show the book info area
-    document.getElementById('book-info-area').style.display = 'block';
+    // Create match cards
+    bookMatches.matches.forEach((match, index) => {
+        const matchCard = createMatchCard(match, index);
+        container.appendChild(matchCard);
+    });
+    
+    // Show the matches area
+    document.getElementById('book-matches-area').style.display = 'block';
+    
+    // Scroll to matches
+    document.getElementById('book-matches-area').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function showNoBookFound() {
+function createMatchCard(match, index) {
+    const col = document.createElement('div');
+    col.className = 'col-md-6 col-lg-4 mb-3';
+    
+    const publisherText = [];
+    if (match.publisher) publisherText.push(match.publisher);
+    if (match.published_date) publisherText.push(match.published_date);
+    const publisherInfo = publisherText.join(', ');
+    
+    const categoriesText = match.categories && match.categories.length > 0 
+        ? match.categories.slice(0, 2).join(', ') 
+        : '';
+    
+    col.innerHTML = `
+        <div class="card h-100 match-card" data-match-index="${index}" onclick="selectMatch(${index})">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-start">
+                    ${match.cover_url ? 
+                        `<img src="${match.cover_url}" alt="Cover" class="me-2 flex-shrink-0" style="width: 50px; height: auto; border-radius: 3px;">` : 
+                        '<div class="me-2 flex-shrink-0 bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 70px; border-radius: 3px;"><i class="bi bi-book text-muted"></i></div>'
+                    }
+                    <div class="flex-grow-1 min-width-0">
+                        <h6 class="card-title mb-1 text-truncate" title="${match.title}">${match.title}</h6>
+                        <p class="text-muted mb-1 small text-truncate" title="${match.author}">${match.author}</p>
+                        ${publisherInfo ? `<p class="text-muted mb-1 small text-truncate">${publisherInfo}</p>` : ''}
+                        ${categoriesText ? `<p class="text-muted mb-1 small text-truncate"><i class="bi bi-tag"></i> ${categoriesText}</p>` : ''}
+                        ${match.page_count ? `<p class="text-muted mb-0 small">${match.page_count} pagina's</p>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent p-2 text-center">
+                <button type="button" class="btn btn-sm btn-success w-100" onclick="selectAndUseMatch(${index}); event.stopPropagation();">
+                    <i class="bi bi-check"></i> Gebruik dit boek
+                </button>
+            </div>
+        </div>
+    `;
+    
+    return col;
+}
+
+function selectMatch(index) {
+    // Remove selection from all cards
+    document.querySelectorAll('.match-card').forEach(card => {
+        card.classList.remove('border-success', 'bg-light');
+    });
+    
+    // Add selection to clicked card
+    const selectedCard = document.querySelector(`[data-match-index="${index}"]`);
+    selectedCard.classList.add('border-success', 'bg-light');
+    
+    selectedBookMatch = currentBookMatches.matches[index];
+}
+
+function selectAndUseMatch(index) {
+    selectedBookMatch = currentBookMatches.matches[index];
+    useSelectedMatch();
+}
+
+function useSelectedMatch() {
+    if (selectedBookMatch) {
+        // Fill the form with the selected book data
+        document.getElementById('boek_titel').value = selectedBookMatch.title;
+        document.getElementById('auteur').value = selectedBookMatch.author;
+        
+        // Hide the matches area
+        hideBookMatches();
+        
+        // Clear any existing alerts
+        clearAlerts();
+        
+        // Save to localStorage
+        saveFormData();
+        
+        // Show success message with more details
+        const publisherInfo = selectedBookMatch.publisher && selectedBookMatch.published_date 
+            ? ` (${selectedBookMatch.publisher}, ${selectedBookMatch.published_date})` 
+            : '';
+        
+        showAlert(`Boekgegevens geïmporteerd! "${selectedBookMatch.title}" door ${selectedBookMatch.author}${publisherInfo} is geselecteerd.`, 'success');
+        
+        // Focus on next form field
+        const nextField = document.getElementById('uitgeleend_aan');
+        if (nextField) {
+            nextField.focus();
+        }
+    }
+}
+
+function hideBookMatches() {
+    document.getElementById('book-matches-area').style.display = 'none';
+    currentBookMatches = null;
+    selectedBookMatch = null;
+}
+
+function showNoBookFound(title, author) {
+    const searchTerms = [title, author].filter(term => term).join(' door ');
+    showAlert(`Geen boeken gevonden voor "${searchTerms}". Je kunt de gegevens handmatig invoeren.`, 'warning');
+}
+
+// Utility function to show alerts
+function showAlert(message, type = 'info') {
     const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-warning alert-dismissible fade show';
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
     alertDiv.innerHTML = `
-        <i class="bi bi-exclamation-triangle"></i> Geen boek gevonden met deze gegevens. 
-        Je kunt de gegevens handmatig invoeren.
+        <i class="bi bi-${getIconForType(type)}"></i> ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     
     const form = document.querySelector('.card-body form');
-    const bookInfoArea = document.getElementById('book-info-area');
-    form.insertBefore(alertDiv, bookInfoArea);
+    const bookMatchesArea = document.getElementById('book-matches-area');
+    form.insertBefore(alertDiv, bookMatchesArea);
     
-    // Auto-remove after 5 seconds
+    // Auto-remove after 5 seconds for warnings and info, 8 seconds for errors
+    const timeout = type === 'danger' ? 8000 : 5000;
     setTimeout(() => {
         if (alertDiv && alertDiv.parentNode) {
             alertDiv.classList.remove('show');
@@ -267,50 +371,26 @@ function showNoBookFound() {
                 }
             }, 150);
         }
-    }, 5000);
+    }, timeout);
 }
 
-function useBookInfo() {
-    if (currentBookInfo) {
-        // Fill the form with the official book data
-        document.getElementById('boek_titel').value = currentBookInfo.title;
-        document.getElementById('auteur').value = currentBookInfo.author;
-        
-        // Hide the book info area
-        hideBookInfo();
-        
-        // Save to localStorage
-        saveFormData();
-        
-        // Show success message
-        const successDiv = document.createElement('div');
-        successDiv.className = 'alert alert-success alert-dismissible fade show';
-        successDiv.innerHTML = `
-            <i class="bi bi-check-circle"></i> Boekgegevens geïmporteerd! 
-            Titel en auteur zijn bijgewerkt met officiële gegevens.
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        const form = document.querySelector('.card-body form');
-        form.insertBefore(successDiv, form.firstChild);
-        
-        // Auto-remove after 4 seconds
-        setTimeout(() => {
-            if (successDiv && successDiv.parentNode) {
-                successDiv.classList.remove('show');
-                setTimeout(() => {
-                    if (successDiv && successDiv.parentNode) {
-                        successDiv.parentNode.removeChild(successDiv);
-                    }
-                }, 150);
-            }
-        }, 4000);
-    }
+function getIconForType(type) {
+    const icons = {
+        'success': 'check-circle',
+        'warning': 'exclamation-triangle',
+        'danger': 'x-circle',
+        'info': 'info-circle'
+    };
+    return icons[type] || 'info-circle';
 }
 
-function hideBookInfo() {
-    document.getElementById('book-info-area').style.display = 'none';
-    currentBookInfo = null;
+function clearAlerts() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        if (alert.parentNode) {
+            alert.parentNode.removeChild(alert);
+        }
+    });
 }
 
 // Auto-lookup when both title and author are entered
@@ -329,8 +409,8 @@ function setupAutoLookup() {
         // Only auto-lookup if both fields have reasonable content
         if (title.length > 3 && author.length > 3) {
             lookupTimeout = setTimeout(() => {
-                // Only lookup if we haven't already found book info
-                if (!currentBookInfo) {
+                // Only lookup if we haven't already found matches
+                if (!currentBookMatches) {
                     lookupBook();
                 }
             }, 2000); // Wait 2 seconds after user stops typing

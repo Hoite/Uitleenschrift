@@ -96,31 +96,30 @@ class Uitlening(db.Model):
     def __repr__(self):
         return f'<Uitlening {self.boek_titel} aan {self.uitgeleend_aan}>'
 
-# Functie om boekgegevens op te halen via Google Books API
-def get_book_info(titel, auteur):
+# Functie om meerdere boekgegevens op te halen via Google Books API
+def get_book_matches(titel, auteur, max_results=5):
     """
-    Haal complete boekgegevens op via de Google Books API
+    Haal meerdere boekmatches op via de Google Books API
     Retourneert: {
-        'title': 'Official Title',
-        'authors': ['Author 1', 'Author 2'],
-        'cover_url': 'https://...',
-        'found': True/False
+        'found': True/False,
+        'matches': [list of book objects],
+        'count': number of matches
     }
     """
     if not GOOGLE_BOOKS_API_KEY:
         print("Geen Google Books API key geconfigureerd")
-        return {'found': False}
+        return {'found': False, 'matches': [], 'count': 0}
         
     try:
         # Maak een zoekquery
         query = f"{titel} {auteur}".strip()
         if not query:
-            return {'found': False}
+            return {'found': False, 'matches': [], 'count': 0}
             
         encoded_query = urllib.parse.quote(query)
         
-        # Google Books API endpoint met API key
-        url = f"https://www.googleapis.com/books/v1/volumes?q={encoded_query}&maxResults=1&key={GOOGLE_BOOKS_API_KEY}"
+        # Google Books API endpoint met API key - meer resultaten
+        url = f"https://www.googleapis.com/books/v1/volumes?q={encoded_query}&maxResults={max_results}&key={GOOGLE_BOOKS_API_KEY}"
         
         # API call
         response = requests.get(url, timeout=5)
@@ -129,46 +128,81 @@ def get_book_info(titel, auteur):
             data = response.json()
             
             if 'items' in data and len(data['items']) > 0:
-                book = data['items'][0]
-                volume_info = book.get('volumeInfo', {})
+                matches = []
                 
-                # Haal titel op
-                official_title = volume_info.get('title', titel)
-                
-                # Haal auteurs op
-                authors_list = volume_info.get('authors', [auteur] if auteur else [])
-                official_author = ', '.join(authors_list) if authors_list else auteur
-                
-                # Haal cover URL op
-                cover_url = None
-                image_links = volume_info.get('imageLinks', {})
-                
-                # Probeer verschillende cover grootten (van groot naar klein)
-                for size in ['extraLarge', 'large', 'medium', 'small', 'thumbnail', 'smallThumbnail']:
-                    if size in image_links:
-                        cover_url = image_links[size]
-                        # Forceer HTTPS voor veiligheid
-                        if cover_url.startswith('http://'):
-                            cover_url = cover_url.replace('http://', 'https://')
-                        break
+                for index, item in enumerate(data['items']):
+                    volume_info = item.get('volumeInfo', {})
+                    
+                    # Haal titel op
+                    official_title = volume_info.get('title', titel)
+                    
+                    # Haal auteurs op
+                    authors_list = volume_info.get('authors', [auteur] if auteur else [])
+                    official_author = ', '.join(authors_list) if authors_list else auteur
+                    
+                    # Haal cover URL op
+                    cover_url = None
+                    image_links = volume_info.get('imageLinks', {})
+                    
+                    # Probeer verschillende cover grootten (van groot naar klein)
+                    for size in ['extraLarge', 'large', 'medium', 'small', 'thumbnail', 'smallThumbnail']:
+                        if size in image_links:
+                            cover_url = image_links[size]
+                            # Forceer HTTPS voor veiligheid
+                            if cover_url.startswith('http://'):
+                                cover_url = cover_url.replace('http://', 'https://')
+                            break
+                    
+                    # Maak match object
+                    match = {
+                        'index': index,
+                        'title': official_title,
+                        'author': official_author,
+                        'authors': authors_list,
+                        'cover_url': cover_url,
+                        'isbn': volume_info.get('industryIdentifiers', [{}])[0].get('identifier', None) if volume_info.get('industryIdentifiers') else None,
+                        'publisher': volume_info.get('publisher', ''),
+                        'published_date': volume_info.get('publishedDate', ''),
+                        'description': volume_info.get('description', '')[:200] + '...' if volume_info.get('description', '') and len(volume_info.get('description', '')) > 200 else volume_info.get('description', ''),
+                        'page_count': volume_info.get('pageCount', ''),
+                        'categories': volume_info.get('categories', []),
+                        'language': volume_info.get('language', ''),
+                        'preview_link': volume_info.get('previewLink', '')
+                    }
+                    matches.append(match)
                 
                 return {
                     'found': True,
-                    'title': official_title,
-                    'author': official_author,
-                    'authors': authors_list,
-                    'cover_url': cover_url,
-                    'isbn': volume_info.get('industryIdentifiers', [{}])[0].get('identifier', None) if volume_info.get('industryIdentifiers') else None,
-                    'publisher': volume_info.get('publisher', ''),
-                    'published_date': volume_info.get('publishedDate', ''),
-                    'description': volume_info.get('description', '')[:500] + '...' if volume_info.get('description', '') and len(volume_info.get('description', '')) > 500 else volume_info.get('description', '')
+                    'matches': matches,
+                    'count': len(matches)
                 }
         
-        return {'found': False}
+        return {'found': False, 'matches': [], 'count': 0}
         
     except Exception as e:
         print(f"Fout bij ophalen boekgegevens: {e}")
-        return {'found': False}
+        return {'found': False, 'matches': [], 'count': 0}
+
+# Functie om enkele boekgegevens op te halen (backward compatibility)
+def get_book_info(titel, auteur):
+    """
+    Haal eerste boekgegevens op via de Google Books API (voor backward compatibility)
+    """
+    matches = get_book_matches(titel, auteur, max_results=1)
+    if matches['found'] and matches['count'] > 0:
+        first_match = matches['matches'][0]
+        return {
+            'found': True,
+            'title': first_match['title'],
+            'author': first_match['author'],
+            'authors': first_match['authors'],
+            'cover_url': first_match['cover_url'],
+            'isbn': first_match['isbn'],
+            'publisher': first_match['publisher'],
+            'published_date': first_match['published_date'],
+            'description': first_match['description']
+        }
+    return {'found': False}
 
 # Backward compatibility function
 def get_book_cover(titel, auteur):
@@ -432,16 +466,17 @@ def health_check():
 @app.route('/api/lookup_book', methods=['POST'])
 @login_required
 def lookup_book():
-    """AJAX endpoint voor real-time boek opzoeken"""
+    """AJAX endpoint voor real-time boek opzoeken met meerdere resultaten"""
     data = request.get_json()
     titel = data.get('title', '').strip()
     auteur = data.get('author', '').strip()
     
     if not titel and not auteur:
-        return jsonify({'found': False, 'error': 'Geen titel of auteur opgegeven'})
+        return jsonify({'found': False, 'error': 'Geen titel of auteur opgegeven', 'matches': [], 'count': 0})
     
-    book_info = get_book_info(titel, auteur)
-    return jsonify(book_info)
+    # Haal meerdere matches op
+    book_matches = get_book_matches(titel, auteur, max_results=5)
+    return jsonify(book_matches)
 
 if __name__ == '__main__':
     with app.app_context():
